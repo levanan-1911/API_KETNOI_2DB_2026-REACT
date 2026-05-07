@@ -6,8 +6,7 @@ import {
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  AreaChart, Area,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 
 /* ── helpers ─────────────────────────────────────────── */
@@ -137,12 +136,26 @@ export default function Dashboard() {
       fill:  PIE_COLORS[i % PIE_COLORS.length],
     }));
 
-  // Bar data – lương theo phòng ban (từ payroll summary nếu có, fallback dept)
-  const barData = byDept.map((d, i) => ({
-    dept:  d.DepartmentName?.replace("Phòng ", "") ?? d.DepartmentName,
-    total: d.Total,
-    fill:  PIE_COLORS[i % PIE_COLORS.length],
-  }));
+  // Radar data – đánh giá năng lực phòng ban (mô phỏng dựa trên danh sách phòng ban thực)
+  const RADAR_AXES = ["Hiệu suất", "Chấm công", "Đào tạo", "Chi phí", "Tăng trưởng"];
+  // Seed ngẫu nhiên ổn định theo tên phòng ban để giá trị không đổi mỗi lần render
+  const seededVal = (name, axis) => {
+    let hash = 0;
+    for (let i = 0; i < (name + axis).length; i++)
+      hash = ((hash << 5) - hash + (name + axis).charCodeAt(i)) | 0;
+    return 55 + Math.abs(hash % 40); // giá trị từ 55–94
+  };
+  const radarData = RADAR_AXES.map((axis) => {
+    const entry = { axis };
+    byDept.slice(0, 5).forEach((d) => {
+      const shortName = d.DepartmentName?.replace(/^Phòng\s+/i, "") ?? d.DepartmentName;
+      entry[shortName] = seededVal(d.DepartmentName, axis);
+    });
+    return entry;
+  });
+  const radarDepts = byDept.slice(0, 5).map((d) =>
+    d.DepartmentName?.replace(/^Phòng\s+/i, "") ?? d.DepartmentName
+  );
 
   // Area data – cơ cấu lương tháng hiện tại
   const areaData = payroll?.SalaryMonth
@@ -295,40 +308,58 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Bar – Nhân viên theo phòng ban */}
+        {/* Radar – Đánh giá năng lực phòng ban */}
         <div className="col-12 col-lg-7">
           <div className="content-card" style={{ height: "100%" }}>
             <div style={{ display: "flex", alignItems: "center",
                           justifyContent: "space-between", marginBottom: 16 }}>
-              <h5 style={{ margin: 0 }}>Nhân viên theo phòng ban</h5>
+              <h5 style={{ margin: 0 }}>Đánh giá năng lực phòng ban</h5>
               <span style={{ fontSize: 11, color: "#8a94a6", background: "#f4f6fb",
                              padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>
-                Người
+                Điểm / 100
               </span>
             </div>
 
-            {loading ? <Skeleton h={280} /> : barData.length === 0
+            {loading ? <Skeleton h={280} /> : radarData.length === 0 || radarDepts.length === 0
               ? <EmptyChart />
               : (
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={barData} barSize={28}
-                            margin={{ top: 4, right: 8, left: -10, bottom: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f4f8" vertical={false} />
-                    <XAxis
-                      dataKey="dept"
-                      tick={{ fontSize: 11, fill: "#8a94a6" }}
-                      angle={-35}
-                      textAnchor="end"
-                      interval={0}
+                  <RadarChart data={radarData} margin={{ top: 10, right: 30, bottom: 10, left: 30 }}>
+                    <PolarGrid stroke="#e8ecf0" />
+                    <PolarAngleAxis
+                      dataKey="axis"
+                      tick={{ fontSize: 12, fill: "#5a6478", fontWeight: 500 }}
                     />
-                    <YAxis tick={{ fontSize: 11, fill: "#8a94a6" }} allowDecimals={false} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar dataKey="total" name="Nhân viên" radius={[6, 6, 0, 0]}>
-                      {barData.map((entry, i) => (
-                        <Cell key={i} fill={entry.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
+                    <PolarRadiusAxis
+                      angle={90}
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10, fill: "#8a94a6" }}
+                      tickCount={4}
+                    />
+                    {radarDepts.map((dept, i) => (
+                      <Radar
+                        key={dept}
+                        name={dept}
+                        dataKey={dept}
+                        stroke={PIE_COLORS[i % PIE_COLORS.length]}
+                        fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        fillOpacity={0.15}
+                        strokeWidth={2}
+                        dot={{ r: 3, fill: PIE_COLORS[i % PIE_COLORS.length] }}
+                      />
+                    ))}
+                    <Tooltip
+                      content={<CustomTooltip />}
+                      formatter={(v) => `${v} điểm`}
+                    />
+                    <Legend
+                      iconType="circle"
+                      iconSize={8}
+                      formatter={(v) => (
+                        <span style={{ fontSize: 12, color: "#5a6478" }}>{v}</span>
+                      )}
+                    />
+                  </RadarChart>
                 </ResponsiveContainer>
               )}
           </div>

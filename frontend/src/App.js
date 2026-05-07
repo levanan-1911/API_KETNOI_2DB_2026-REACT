@@ -9,6 +9,7 @@ import SalaryDetail    from "./pages/SalaryDetail";
 import DividendReport  from "./pages/DividendReport";
 import Profile         from "./pages/Profile";
 import Reports         from "./pages/Reports";
+import Alerts          from "./pages/Alerts";
 
 const Placeholder = ({ title }) => (
   <div style={{ display: "flex", flexDirection: "column",
@@ -43,7 +44,7 @@ function App() {
           <Route path="/departments"  element={<Placeholder title="Phòng ban & Chức vụ" />} />
           <Route path="/attendance"   element={<Placeholder title="Chấm công & Nghỉ phép" />} />
           <Route path="/reports"      element={<Reports />} />
-          <Route path="/alerts"       element={<Placeholder title="Cảnh báo" />} />
+          <Route path="/alerts"       element={<Alerts />} />
           <Route path="/profile"      element={<Profile />} />
           <Route path="/admin"        element={<Placeholder title="Quản trị hệ thống" />} />
         </Routes>

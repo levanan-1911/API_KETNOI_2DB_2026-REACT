@@ -186,3 +186,43 @@ INSERT INTO attendance (EmployeeID, AttendanceMonth, AttendanceYear, WorkDays, L
     (5, 4, 2026, 22, 0, 0, 4.0);
 
 SELECT 'payroll_2026 database created successfully!' AS Message;
+
+-- ============================================================
+-- 8. BẢNG ALERTS – Cảnh báo & Thông báo hệ thống
+-- Theo API: GET /api/alerts, PUT /api/alerts/:id/read
+-- ============================================================
+CREATE TABLE IF NOT EXISTS alerts (
+    AlertID         INT             NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    Severity        VARCHAR(20)     NOT NULL DEFAULT 'info',   -- info / warning / critical
+    Title           VARCHAR(255)    NOT NULL,
+    Description     TEXT            NULL,
+    IsRead          TINYINT(1)      NOT NULL DEFAULT 0,        -- 0 = chưa đọc, 1 = đã đọc
+    CreatedAt       DATETIME        DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt       DATETIME        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT CHK_Severity CHECK (Severity IN ('info', 'warning', 'critical'))
+);
+
+-- Dữ liệu mẫu cho bảng alerts
+INSERT INTO alerts (Severity, Title, Description, IsRead) VALUES
+    ('critical', 'Lương tháng 5/2026 chưa được duyệt',
+     'Bảng lương tháng 05/2026 đã được tạo nhưng chưa có người phê duyệt. Vui lòng kiểm tra và xác nhận trước ngày 10/05.',
+     0),
+    ('warning', '3 nhân viên sắp hết hạn hợp đồng',
+     'Nguyễn Văn A, Trần Thị B, Lê Văn C có hợp đồng hết hạn trong vòng 30 ngày tới. Cần gia hạn hoặc chấm dứt hợp đồng.',
+     0),
+    ('info', 'Đồng bộ dữ liệu hoàn tất',
+     'Quá trình đồng bộ dữ liệu giữa HUMAN_2025 (SQL Server) và payroll_2026 (MySQL) đã hoàn tất thành công. 42 bản ghi được cập nhật.',
+     0),
+    ('warning', 'Tỷ lệ nghỉ phép phòng Kỹ thuật vượt ngưỡng',
+     'Phòng Kỹ thuật có 6/15 nhân viên đang nghỉ phép cùng lúc (40%), vượt ngưỡng cho phép 30%. Cần điều phối lại lịch nghỉ.',
+     1),
+    ('info', 'Báo cáo cổ tức Q1/2026 đã sẵn sàng',
+     'Báo cáo cổ tức quý 1 năm 2026 đã được tổng hợp. Tổng giá trị: 1.250.000.000 VNĐ cho 28 nhân viên đủ điều kiện.',
+     1),
+    ('critical', 'Lỗi kết nối cơ sở dữ liệu AuthDB',
+     'Hệ thống phát hiện 2 lần kết nối thất bại đến SQL Server AuthDB trong 24 giờ qua. Kiểm tra cấu hình kết nối và trạng thái server.',
+     1),
+    ('info', 'Cập nhật hệ thống phiên bản 2.1.0',
+     'Hệ thống HR & Payroll đã được cập nhật lên phiên bản 2.1.0. Xem chi tiết các tính năng mới và bản vá lỗi trong ghi chú phát hành.',
+     1);

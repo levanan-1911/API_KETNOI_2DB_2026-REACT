@@ -237,16 +237,230 @@
 - [x] Responsive (flexWrap cho header và filter tabs)
 
 ### Việc cần làm tiếp (Alerts)
-- [ ] Kết nối API backend thực (`GET /api/alerts`, `PUT /api/alerts/:id/read`)
-- [ ] Thêm tính năng xóa thông báo
-- [ ] Phân trang hoặc infinite scroll khi có nhiều thông báo
-- [ ] Kết nối notification bell ở Header với số lượng chưa đọc thực tế
+- [x] Kết nối API backend thực (`GET /api/alerts`, `PUT /api/alerts/:id/read`)
+- [x] Thêm tính năng xóa thông báo
+- [x] Phân trang hoặc infinite scroll khi có nhiều thông báo
+- [x] Kết nối notification bell ở Header với số lượng chưa đọc thực tế
+
+---
+
+## [2026-05-08] – Kết nối notification bell với số lượng chưa đọc thực tế
+
+### Kiến trúc
+Dùng **React Context** (`AlertsContext`) để chia sẻ `unreadCount` toàn app — tránh prop drilling qua Layout.
+
+### File tạo mới: `frontend/src/context/AlertsContext.js`
+- `AlertsProvider` – bọc toàn app, quản lý `unreadCount`
+- `refreshUnread()` – gọi `GET /api/alerts?filter=unread` lấy số chưa đọc
+- **Auto-poll mỗi 60 giây** – tự động cập nhật badge mà không cần user thao tác
+- `useAlerts()` – hook tiện dụng để dùng trong bất kỳ component nào
+
+### Cập nhật `frontend/src/App.js`
+- Import `AlertsProvider`
+- Bọc `<Layout>` trong `<AlertsProvider>` để toàn bộ cây component có thể dùng context
+
+### Cập nhật `frontend/src/components/Header.jsx`
+**Bell button:**
+- Dùng `useAlerts()` lấy `unreadCount` từ context
+- **Badge số** hiển thị trên bell:
+  - Hiện khi `unreadCount > 0`
+  - Hiển thị số thực tế, tối đa "99+"
+  - Màu đỏ `#ef4444`, border trắng 2px
+  - Kích thước tự động: 16px (1 chữ số) / 18px (2+ chữ số)
+- Click bell → toggle **dropdown mini**
+
+**Dropdown mini (mới):**
+- Header: "Thông báo" + badge "X chưa đọc" màu đỏ nhạt
+- Nội dung: thông báo số lượng chưa đọc (hoặc empty state nếu = 0)
+- Footer: nút "Xem tất cả thông báo →" → navigate `/alerts`
+- Tự đóng khi: click ra ngoài (`mousedown` listener) hoặc chuyển trang
+
+### Cập nhật `frontend/src/pages/Alerts.jsx`
+- Import `useAlerts` từ context
+- Gọi `refreshUnread()` sau mỗi thao tác:
+  - `markRead(id)` → refresh sau khi PUT thành công
+  - `markAllRead()` → refresh sau khi PUT thành công
+  - `deleteAlert(id)` → refresh sau khi DELETE thành công
+  - `clearReadAlerts()` → refresh sau khi DELETE thành công
+
+### Luồng dữ liệu
+```
+AlertsProvider (App.js)
+  ├── Header.jsx  → useAlerts() → hiển thị badge + dropdown
+  └── Alerts.jsx  → useAlerts() → gọi refreshUnread() sau thao tác
+```
+
+### File đã thay đổi
+| File | Thay đổi |
+|------|---------|
+| `frontend/src/context/AlertsContext.js` | **Tạo mới** – Context, Provider, hook `useAlerts` |
+| `frontend/src/App.js` | Bọc app trong `<AlertsProvider>` |
+| `frontend/src/components/Header.jsx` | Badge số trên bell, dropdown mini, navigate to /alerts |
+| `frontend/src/pages/Alerts.jsx` | Gọi `refreshUnread()` sau mỗi thao tác đọc/xóa |
+
+---
+
+## [2026-05-08] – Thêm phân trang cho trang Alerts
+
+### Chiến lược
+- Dùng **phân trang client-side** (load 1 lần, phân trang trên frontend)
+- `PAGE_SIZE = 5` thông báo mỗi trang
+- Reset về trang 1 khi đổi filter hoặc load lại dữ liệu
+
+### Frontend – cập nhật Alerts.jsx
+
+**Import thêm:** `useRef`, `ChevronLeft`, `ChevronRight`, `ChevronsLeft`, `ChevronsRight`
+
+**State mới:**
+- `currentPage` – trang hiện tại (mặc định 1)
+- `listTopRef` – ref để scroll về đầu danh sách khi đổi trang
+
+**Logic phân trang:**
+- `filtered` → lọc theo tab (all/unread/read)
+- `totalPages = Math.ceil(filtered.length / PAGE_SIZE)`
+- `paginated = filtered.slice(pageStart, pageStart + PAGE_SIZE)` – chỉ render trang hiện tại
+- `goToPage(p)` – đổi trang + `scrollIntoView` về đầu danh sách
+
+**Component mới `<Pagination />`:**
+| Phần | Mô tả |
+|------|-------|
+| Thông tin | "Hiển thị 1–5 trong 12 thông báo" |
+| Nút trang đầu | `ChevronsLeft` – về trang 1 |
+| Nút trang trước | `ChevronLeft` |
+| Số trang | Tối đa 7 nút, có dấu `…` khi nhiều trang |
+| Nút trang sau | `ChevronRight` |
+| Nút trang cuối | `ChevronsRight` |
+| Active state | Nền xanh `#2563eb` cho trang hiện tại |
+| Disabled state | Opacity 0.4 khi ở trang đầu/cuối |
+
+**Thuật toán hiển thị số trang (`getPageNumbers`):**
+- ≤ 7 trang: hiện tất cả
+- Gần đầu (page ≤ 4): `1 2 3 4 5 … N`
+- Gần cuối (page ≥ N-3): `1 … N-4 N-3 N-2 N-1 N`
+- Ở giữa: `1 … p-1 p p+1 … N`
+
+**Hành vi UX:**
+- Đổi filter → reset về trang 1
+- Load lại dữ liệu → reset về trang 1
+- Xóa thông báo cuối trang → tự điều chỉnh `safePage = Math.min(currentPage, totalPages)`
+- Phân trang chỉ hiện khi `filtered.length > PAGE_SIZE`
+
+### File đã thay đổi
+| File | Thay đổi |
+|------|---------|
+| `frontend/src/pages/Alerts.jsx` | Thêm phân trang client-side, component `<Pagination />`, logic `goToPage`, scroll to top |
+
+---
+
+## [2026-05-08] – Thêm tính năng xóa thông báo (Alerts)
+
+### Backend – thêm 2 API mới vào router.py
+| API | Method | Mô tả |
+|-----|--------|-------|
+| `/api/alerts/:id` | DELETE | Xóa 1 thông báo theo AlertID |
+| `/api/alerts/clear-read` | DELETE | Xóa tất cả thông báo đã đọc (IsRead=1) |
+
+### Frontend – cập nhật Alerts.jsx
+**State mới:**
+- `clearingRead` – loading state khi đang xóa tất cả đã đọc
+- `confirmDialog` – `{ type: "one"|"read-all", id?: number } | null` – quản lý confirm dialog
+
+**Hàm mới:**
+- `deleteAlert(id)` – optimistic update (xóa khỏi UI ngay) + gọi `DELETE /api/alerts/:id`, rollback bằng `loadAlerts()` nếu lỗi
+- `clearReadAlerts()` – gọi `DELETE /api/alerts/clear-read`, lọc bỏ các alert đã đọc khỏi state
+- `handleConfirm()` – xử lý khi user xác nhận trong dialog
+
+**UI mới:**
+- **Confirm Dialog** (modal overlay): hiện khi xóa 1 hoặc xóa tất cả đã đọc
+  - Icon Trash2 màu đỏ, nội dung mô tả hành động
+  - Nút "Hủy" (xám) + nút "Xóa" (đỏ)
+  - Nút X đóng dialog
+- **Nút "Xóa đã đọc"** ở header (chỉ hiện khi có thông báo đã đọc)
+  - Màu đỏ nhạt `#fef2f2`, border `#fecaca`
+  - Hover: đậm hơn `#fee2e2`
+  - Disable khi đang xóa
+- **Nút xóa (Trash2)** trên mỗi AlertCard
+  - Icon 32×32, màu xám nhạt mặc định
+  - Hover: nền đỏ nhạt `#fef2f2`, icon đỏ `#ef4444`
+  - Nằm cùng nhóm với nút "Đã đọc"
+
+**Import thêm:** `Trash2`, `X` từ `lucide-react`
+
+### File đã thay đổi
+| File | Thay đổi |
+|------|---------|
+| `frontend/src/pages/Alerts.jsx` | Thêm xóa 1 alert, xóa tất cả đã đọc, confirm dialog, nút Trash2 trên card |
+| `backend/router.py` | Thêm `DELETE /api/alerts/:id` và `DELETE /api/alerts/clear-read` |
+
+---
+
+## [2026-05-08] – Kết nối API thật cho trang Alerts
+
+### Thay đổi frontend/src/pages/Alerts.jsx
+- **Xóa** toàn bộ dữ liệu mẫu `INITIAL_ALERTS` (hardcode)
+- **Thêm** `useEffect` + `useCallback` để gọi `GET /api/alerts` khi mount
+- **Thêm** hàm `loadAlerts()` – fetch dữ liệu, map field backend → UI:
+  - `AlertID` → `id`
+  - `Severity` → `severity`
+  - `Title` → `title`
+  - `Description` → `description`
+  - `IsRead` → `read`
+  - `CreatedAt` → tính `time` qua helper `timeAgo()`
+- **Thêm** helper `timeAgo(dateStr)` – chuyển timestamp → "5 phút trước", "Hôm qua"...
+- **Thêm** skeleton loading (4 placeholder cards khi đang tải)
+- **Thêm** error state với nút "Thử lại"
+- **Cập nhật** `markRead(id)`:
+  - Optimistic update (cập nhật UI ngay lập tức)
+  - Gọi `PUT /api/alerts/:id/read`
+  - Rollback nếu API lỗi
+- **Cập nhật** `markAllRead()`:
+  - Gọi `PUT /api/alerts/read-all`
+  - State `markingAll` để disable nút khi đang xử lý
+- **Thêm** nút "Làm mới" (RefreshCw icon) với animation spin
+
+### Thay đổi backend/router.py (đã thêm trước đó)
+| API | Method | Mô tả |
+|-----|--------|-------|
+| `/api/alerts` | GET | Lấy danh sách alerts, filter `?filter=all\|unread\|read` |
+| `/api/alerts/:id/read` | PUT | Đánh dấu 1 alert đã đọc |
+| `/api/alerts/read-all` | PUT | Đánh dấu tất cả alerts đã đọc |
+
+### Thay đổi database/PAYROLL_2026_MySQL.sql (đã thêm trước đó)
+- Thêm bảng `alerts` với các cột: `AlertID`, `Severity`, `Title`, `Description`, `IsRead`, `CreatedAt`, `UpdatedAt`
+- Thêm 7 bản ghi mẫu (3 chưa đọc, 4 đã đọc)
+
+### File đã thay đổi
+| File | Thay đổi |
+|------|---------|
+| `frontend/src/pages/Alerts.jsx` | Kết nối API thật, thêm loading/error state, optimistic update |
+| `backend/router.py` | Thêm 3 API: GET /alerts, PUT /alerts/:id/read, PUT /alerts/read-all |
+| `database/PAYROLL_2026_MySQL.sql` | Thêm bảng `alerts` + dữ liệu mẫu |
 
 ---
 
 ## Việc cần làm tiếp theo
 
-- [ ] Cài `recharts` + `lucide-react` cho frontend
+
+- [x] Cài `recharts` + `lucide-react` cho frontend
+
+---
+
+## [2026-05-08] – Kiểm tra thư viện recharts + lucide-react
+
+### Kết quả kiểm tra
+Cả hai thư viện **đã được cài sẵn** trong `node_modules`, không cần cài thêm.
+
+| Thư viện | Version trong package.json | Version thực tế (node_modules) | Trạng thái |
+|----------|---------------------------|-------------------------------|------------|
+| `lucide-react` | `^1.14.0` | `1.14.0` | ✅ Đã cài |
+| `recharts` | `^3.8.1` | `3.8.1` | ✅ Đã cài |
+
+### Sử dụng trong dự án
+- **`lucide-react`**: dùng trong Sidebar, Header, Dashboard, Alerts, Payroll, SalaryDetail, DividendReport, Profile
+- **`recharts`**: dùng trong Dashboard (PieChart, RadarChart), SalaryDetail (AreaChart)
+
+### Không cần thay đổi file nào
+Thư viện đã có sẵn, chỉ cần chạy `npm install` nếu clone repo mới về máy khác.
 - [ ] Tạo trang Dashboard với dữ liệu thật từ `/api/reports/dashboard`
 - [ ] Cập nhật Sidebar thêm link Dashboard, Payroll, Attendance
 - [ ] Tích hợp JWT Auth (AuthDB)

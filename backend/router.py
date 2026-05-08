@@ -767,3 +767,145 @@ def get_dividend_report():
         "data":        rows,
         "GrandTotal":  grand_total
     })
+
+
+# ============================================================
+# ALERTS – GET danh sách cảnh báo
+# ============================================================
+
+@router.route("/api/alerts", methods=["GET"])
+def get_alerts():
+    """
+    Lấy danh sách cảnh báo từ MySQL.
+    Query params:
+      ?filter=all|unread|read  (mặc định: all)
+      ?severity=info|warning|critical
+    """
+    filter_type = request.args.get("filter", "all")   # all / unread / read
+    severity    = request.args.get("severity")         # info / warning / critical
+
+    my = get_mysql_connection()
+    my_cur = my.cursor(dictionary=True)
+
+    query  = "SELECT AlertID, Severity, Title, Description, IsRead, CreatedAt FROM alerts WHERE 1=1"
+    params = []
+
+    if filter_type == "unread":
+        query += " AND IsRead = 0"
+    elif filter_type == "read":
+        query += " AND IsRead = 1"
+
+    if severity:
+        query += " AND Severity = %s"
+        params.append(severity)
+
+    query += " ORDER BY CreatedAt DESC"
+    my_cur.execute(query, params)
+    rows = my_cur.fetchall()
+
+    for r in rows:
+        if r.get("CreatedAt"):
+            r["CreatedAt"] = str(r["CreatedAt"])
+        r["IsRead"] = bool(r["IsRead"])
+
+    unread_count = sum(1 for r in rows if not r["IsRead"])
+
+    return jsonify({
+        "status": "success",
+        "total":        len(rows),
+        "unread_count": unread_count,
+        "data":         rows
+    })
+
+
+# ============================================================
+# ALERTS – PUT đánh dấu 1 thông báo đã đọc
+# ============================================================
+
+@router.route("/api/alerts/<int:alert_id>/read", methods=["PUT"])
+def mark_alert_read(alert_id):
+    """Đánh dấu 1 thông báo là đã đọc (IsRead = 1)"""
+    my = get_mysql_connection()
+    my_cur = my.cursor()
+
+    try:
+        my_cur.execute(
+            "UPDATE alerts SET IsRead = 1 WHERE AlertID = %s",
+            (alert_id,)
+        )
+        if my_cur.rowcount == 0:
+            return jsonify({"status": "error", "msg": "Không tìm thấy thông báo"}), 404
+        my.commit()
+    except Exception as e:
+        my.rollback()
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({"status": "success", "msg": "Đã đánh dấu đã đọc", "AlertID": alert_id})
+
+
+# ============================================================
+# ALERTS – PUT đánh dấu TẤT CẢ đã đọc
+# ============================================================
+
+@router.route("/api/alerts/read-all", methods=["PUT"])
+def mark_all_alerts_read():
+    """Đánh dấu tất cả thông báo chưa đọc thành đã đọc"""
+    my = get_mysql_connection()
+    my_cur = my.cursor()
+
+    try:
+        my_cur.execute("UPDATE alerts SET IsRead = 1 WHERE IsRead = 0")
+        updated = my_cur.rowcount
+        my.commit()
+    except Exception as e:
+        my.rollback()
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({"status": "success", "msg": f"Đã đánh dấu {updated} thông báo đã đọc", "updated": updated})
+
+
+# ============================================================
+# ALERTS – DELETE xóa 1 thông báo
+# ============================================================
+
+@router.route("/api/alerts/<int:alert_id>", methods=["DELETE"])
+def delete_alert(alert_id):
+    """Xóa 1 thông báo theo ID"""
+    my = get_mysql_connection()
+    my_cur = my.cursor()
+
+    try:
+        my_cur.execute("DELETE FROM alerts WHERE AlertID = %s", (alert_id,))
+        if my_cur.rowcount == 0:
+            return jsonify({"status": "error", "msg": "Không tìm thấy thông báo"}), 404
+        my.commit()
+    except Exception as e:
+        my.rollback()
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({"status": "success", "msg": "Đã xóa thông báo", "AlertID": alert_id})
+
+
+# ============================================================
+# ALERTS – DELETE xóa tất cả thông báo đã đọc
+# ============================================================
+
+@router.route("/api/alerts/clear-read", methods=["DELETE"])
+def clear_read_alerts():
+    """Xóa tất cả thông báo đã đọc (IsRead = 1)"""
+    my = get_mysql_connection()
+    my_cur = my.cursor()
+
+    try:
+        my_cur.execute("DELETE FROM alerts WHERE IsRead = 1")
+        deleted = my_cur.rowcount
+        my.commit()
+    except Exception as e:
+        my.rollback()
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({
+        "status":  "success",
+        "msg":     f"Đã xóa {deleted} thông báo đã đọc",
+        "deleted": deleted
+    })

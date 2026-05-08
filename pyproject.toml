@@ -7,3 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "browser-use>=0.12.6",
 ]
+
+[tool.vercel]
+# Không deploy Python backend lên Vercel
+# Frontend được deploy từ thư mục frontend/

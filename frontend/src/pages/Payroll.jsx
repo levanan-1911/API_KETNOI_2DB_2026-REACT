@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   DollarSign, Eye, Edit3, TrendingUp,
   TrendingDown, Users, RefreshCw, X, Check, AlertCircle,
+  Download, Filter,
 } from "lucide-react";
 
 /* ── helpers ─────────────────────────────────────────── */
@@ -16,18 +17,27 @@ const fmtShort = (n) => {
   return new Intl.NumberFormat("vi-VN").format(n);
 };
 
-function StatusBadge({ value, type = "salary" }) {
-  if (type === "net") {
-    const color = value >= 15e6 ? "#16a34a" : value >= 10e6 ? "#d97706" : "#dc2626";
-    const bg    = value >= 15e6 ? "#f0fdf4" : value >= 10e6 ? "#fffbeb" : "#fef2f2";
-    return (
-      <span style={{ background: bg, color, padding: "3px 10px",
-                     borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
-        {fmt(value)}
-      </span>
-    );
-  }
-  return null;
+/* ── Export CSV ──────────────────────────────────────── */
+function exportCSV(rows, month) {
+  const headers = ["Mã NV", "Họ tên", "Phòng ban", "Chức vụ",
+                   "Lương CB", "Thưởng", "Khấu trừ", "Thực nhận"];
+  const lines = [
+    headers.join(","),
+    ...rows.map(r => [
+      r.EmployeeID,
+      `"${r.FullName}"`,
+      `"${r.DepartmentName || ""}"`,
+      `"${r.PositionName || ""}"`,
+      r.BaseSalary, r.Bonus, r.Deductions, r.NetSalary,
+    ].join(",")),
+  ];
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `bang-luong-${month}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 /* ── Modal điều chỉnh lương ──────────────────────────── */
@@ -171,16 +181,29 @@ function AdjustModal({ row, onClose, onSaved }) {
   );
 }
 
+function StatusBadge({ value }) {
+  const color = value >= 15e6 ? "#16a34a" : value >= 10e6 ? "#d97706" : "#dc2626";
+  const bg    = value >= 15e6 ? "#f0fdf4" : value >= 10e6 ? "#fffbeb" : "#fef2f2";
+  return (
+    <span style={{ background: bg, color, padding: "3px 10px",
+                   borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+      {fmt(value)}
+    </span>
+  );
+}
+
 /* ── Main Payroll Page ───────────────────────────────── */
 export default function Payroll() {
   const nav = useNavigate();
 
-  const [rows,    setRows]    = useState([]);
-  const [months,  setMonths]  = useState([]);
-  const [month,   setMonth]   = useState("");
-  const [search,  setSearch]  = useState("");
-  const [loading, setLoading] = useState(true);
-  const [modal,   setModal]   = useState(null); // row đang điều chỉnh
+  const [rows,       setRows]       = useState([]);
+  const [months,     setMonths]     = useState([]);
+  const [month,      setMonth]      = useState("");
+  const [search,     setSearch]     = useState("");
+  const [filterDept, setFilterDept] = useState("all");
+  const [loading,    setLoading]    = useState(true);
+  const [modal,      setModal]      = useState(null);
+  const [savedId,    setSavedId]    = useState(null); // highlight row vừa lưu
 
   /* Load danh sách tháng */
   useEffect(() => {
@@ -208,10 +231,14 @@ export default function Payroll() {
   useEffect(() => { if (month) load(); }, [month, load]);
 
   /* Filter */
-  const filtered = rows.filter((r) =>
-    r.FullName?.toLowerCase().includes(search.toLowerCase()) ||
-    r.DepartmentName?.toLowerCase().includes(search.toLowerCase())
-  );
+  const deptList = ["all", ...new Set(rows.map(r => r.DepartmentName).filter(Boolean))];
+
+  const filtered = rows.filter((r) => {
+    const matchSearch = r.FullName?.toLowerCase().includes(search.toLowerCase()) ||
+                        r.DepartmentName?.toLowerCase().includes(search.toLowerCase());
+    const matchDept   = filterDept === "all" || r.DepartmentName === filterDept;
+    return matchSearch && matchDept;
+  });
 
   /* Summary */
   const totalBase = rows.reduce((s, r) => s + Number(r.BaseSalary || 0), 0);

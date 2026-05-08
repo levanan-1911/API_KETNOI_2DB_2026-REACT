@@ -1,37 +1,27 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Sun, Moon, LogIn, Zap } from "lucide-react";
+import { Eye, EyeOff, LogIn, Users, DollarSign, BarChart3, Shield } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import Logo from "../components/Logo";
 
-/* ── Tài khoản demo ──────────────────────────────────────── */
-const DEMO_ACCOUNTS = [
-  { label: "Admin",            username: "admin",           password: "Admin@123",   color: "#2563eb", bg: "#eff6ff" },
-  { label: "HR Manager",       username: "hr_manager",      password: "Hr@123",      color: "#16a34a", bg: "#f0fdf4" },
-  { label: "Payroll Manager",  username: "payroll_manager", password: "Payroll@123", color: "#d97706", bg: "#fffbeb" },
-  { label: "Employee",         username: "employee",        password: "Emp@123",     color: "#9333ea", bg: "#fdf4ff" },
+const FEATURES = [
+  { icon: Users,      title: "Quản lý nhân viên",   desc: "Hồ sơ, hợp đồng, phòng ban toàn diện" },
+  { icon: DollarSign, title: "Tính lương tự động",  desc: "Bảo hiểm, thuế TNCN theo quy định" },
+  { icon: BarChart3,  title: "Báo cáo thông minh",  desc: "Phân tích dữ liệu HR theo thời gian thực" },
+  { icon: Shield,     title: "Phân quyền RBAC",     desc: "Kiểm soát truy cập theo vai trò" },
 ];
-
-/* ── Role badge color ────────────────────────────────────── */
-const ROLE_COLORS = {
-  "Admin":            { color: "#2563eb", bg: "#eff6ff" },
-  "HR Manager":       { color: "#16a34a", bg: "#f0fdf4" },
-  "Payroll Manager":  { color: "#d97706", bg: "#fffbeb" },
-  "Employee":         { color: "#9333ea", bg: "#fdf4ff" },
-};
 
 export default function Login() {
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
 
-  const [username,  setUsername]  = useState("");
-  const [password,  setPassword]  = useState("");
-  const [showPw,    setShowPw]    = useState(false);
-  const [remember,  setRemember]  = useState(false);
-  const [error,     setError]     = useState("");
-  const [loading,   setLoading]   = useState(false);
-  const [darkMode,  setDarkMode]  = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [focused,  setFocused]  = useState("");
 
-  /* ── Submit ── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password) {
@@ -49,132 +39,215 @@ export default function Login() {
     }
   };
 
-  /* ── Quick login ── */
-  const quickLogin = async (acc) => {
-    setLoading(true);
-    setError("");
-    const result = await login(acc.username, acc.password);
-    if (result.ok) {
-      navigate("/", { replace: true });
-    } else {
-      setError(result.msg);
-      setLoading(false);
-    }
-  };
-
-  /* ── Theme vars ── */
-  const theme = {
-    bg:        darkMode ? "#0f172a" : "#f4f6fb",
-    card:      darkMode ? "#1e293b" : "#ffffff",
-    border:    darkMode ? "#334155" : "#e8ecf0",
-    text:      darkMode ? "#f1f5f9" : "#1e2a3a",
-    subtext:   darkMode ? "#94a3b8" : "#8a94a6",
-    input:     darkMode ? "#0f172a" : "#ffffff",
-    inputBorder: darkMode ? "#475569" : "#d1d5db",
-    demoBg:    darkMode ? "#0f172a" : "#f8fafc",
-  };
-
   return (
     <div style={{
       minHeight: "100vh",
-      background: darkMode
-        ? "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)"
-        : "linear-gradient(135deg, #eff6ff 0%, #f4f6fb 50%, #fdf4ff 100%)",
       display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: 16,
-      position: "relative",
-      fontFamily: "'Segoe UI', -apple-system, sans-serif",
+      fontFamily: "'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif",
+      overflow: "hidden",
     }}>
 
-      {/* ── Dark mode toggle ── */}
-      <button
-        onClick={() => setDarkMode(!darkMode)}
-        style={{
-          position: "absolute", top: 20, right: 20,
-          width: 40, height: 40, borderRadius: "50%",
-          background: theme.card, border: `1px solid ${theme.border}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", color: theme.subtext,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          transition: "all 0.2s",
-        }}
-        title={darkMode ? "Chế độ sáng" : "Chế độ tối"}
-      >
-        {darkMode ? <Sun size={18} color="#f59e0b" /> : <Moon size={18} />}
-      </button>
+      {/* ══ LEFT PANEL — Branding ══ */}
+      <div style={{
+        flex: "0 0 52%",
+        background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #312e81 70%, #1d4ed8 100%)",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        padding: "60px 64px",
+        position: "relative",
+        overflow: "hidden",
+      }}>
 
-      <div style={{ width: "100%", maxWidth: 440 }}>
-
-        {/* ── Logo & Title ── */}
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{
-            width: 80, height: 80, borderRadius: 20,
-            background: "linear-gradient(135deg, #3b82f6, #8b5cf6)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            margin: "0 auto 16px",
-            boxShadow: "0 8px 24px rgba(59,130,246,0.35)",
-            fontSize: 28, fontWeight: 900, color: "#fff",
-            letterSpacing: -2,
-          }}>
-            HR
-          </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: theme.text, margin: "0 0 6px" }}>
-            HR &amp; Payroll System
-          </h1>
-          <p style={{ fontSize: 13, color: theme.subtext, margin: 0 }}>
-            Hệ thống quản lý nhân sự &amp; tiền lương
-          </p>
-        </div>
-
-        {/* ── Main Card ── */}
+        {/* Animated blobs */}
         <div style={{
-          background: theme.card,
-          border: `1px solid ${theme.border}`,
-          borderRadius: 16,
-          padding: 28,
-          boxShadow: darkMode
-            ? "0 8px 32px rgba(0,0,0,0.4)"
-            : "0 8px 32px rgba(59,130,246,0.08)",
-        }}>
-          <h2 style={{ fontSize: 17, fontWeight: 700, color: theme.text, margin: "0 0 20px" }}>
-            Đăng nhập
-          </h2>
+          position: "absolute", width: 500, height: 500,
+          borderRadius: "50%", top: -120, right: -120,
+          background: "radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%)",
+          animation: "blobPulse 8s ease-in-out infinite",
+        }} />
+        <div style={{
+          position: "absolute", width: 400, height: 400,
+          borderRadius: "50%", bottom: -80, left: -80,
+          background: "radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%)",
+          animation: "blobPulse 10s ease-in-out infinite reverse",
+        }} />
+        <div style={{
+          position: "absolute", width: 200, height: 200,
+          borderRadius: "50%", top: "45%", right: "15%",
+          background: "radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%)",
+          animation: "blobPulse 6s ease-in-out infinite 2s",
+        }} />
 
+        {/* Grid pattern overlay */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
+          `,
+          backgroundSize: "40px 40px",
+        }} />
+
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 480 }}>
+
+          {/* Logo */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 56 }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 14,
+              background: "linear-gradient(135deg, #6366f1, #3b82f6)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              boxShadow: "0 8px 24px rgba(99,102,241,0.4)",
+            }}>
+              <Logo size={34} color="#fff" />
+            </div>
+            <div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: "#fff", letterSpacing: -0.5 }}>
+                HR &amp; Payroll
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 1 }}>
+                Management System
+              </div>
+            </div>
+          </div>
+
+          {/* Headline */}
+          <h1 style={{
+            fontSize: 42, fontWeight: 900, color: "#fff",
+            lineHeight: 1.15, margin: "0 0 16px",
+            letterSpacing: -1,
+          }}>
+            Quản lý nhân sự<br />
+            <span style={{
+              background: "linear-gradient(90deg, #818cf8, #60a5fa, #a78bfa)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}>
+              thông minh hơn
+            </span>
+          </h1>
+          <p style={{
+            fontSize: 16, color: "rgba(255,255,255,0.6)",
+            lineHeight: 1.7, margin: "0 0 48px",
+          }}>
+            Nền tảng tích hợp quản lý nhân viên, tính lương tự động
+            và phân tích dữ liệu HR toàn diện.
+          </p>
+
+          {/* Feature list */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            {FEATURES.map((f, i) => (
+              <div key={i} style={{
+                display: "flex", alignItems: "center", gap: 16,
+                animation: `fadeSlideIn 0.5s ease ${i * 0.1 + 0.3}s both`,
+              }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  backdropFilter: "blur(8px)",
+                }}>
+                  <f.icon size={18} color="rgba(255,255,255,0.85)" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{f.title}</div>
+                  <div style={{ fontSize: 12, color: "rgba(255,255,255,0.45)", marginTop: 1 }}>{f.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom badge */}
+          <div style={{
+            marginTop: 56, display: "inline-flex", alignItems: "center", gap: 8,
+            background: "rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 100, padding: "8px 16px",
+            backdropFilter: "blur(8px)",
+          }}>
+            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
+              Hệ thống đang hoạt động · v2.0 · 2026
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ══ RIGHT PANEL — Form ══ */}
+      <div style={{
+        flex: 1,
+        background: "#f8fafc",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        padding: "40px 48px",
+        position: "relative",
+      }}>
+
+        {/* Subtle background pattern */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: "radial-gradient(circle at 80% 20%, rgba(99,102,241,0.06) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(59,130,246,0.05) 0%, transparent 50%)",
+          pointerEvents: "none",
+        }} />
+
+        <div style={{ width: "100%", maxWidth: 400, position: "relative" }}>
+
+          {/* Header */}
+          <div style={{ marginBottom: 36 }}>
+            <h2 style={{
+              fontSize: 28, fontWeight: 800, color: "#0f172a",
+              margin: "0 0 8px", letterSpacing: -0.5,
+            }}>
+              Chào mừng trở lại 👋
+            </h2>
+            <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>
+              Đăng nhập để tiếp tục quản lý hệ thống
+            </p>
+          </div>
+
+          {/* Form */}
           <form onSubmit={handleSubmit}>
+
             {/* Username */}
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 20 }}>
               <label style={{
                 display: "block", fontSize: 13, fontWeight: 600,
-                color: theme.text, marginBottom: 6,
+                color: "#374151", marginBottom: 7,
               }}>
                 Tài khoản
               </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => { setUsername(e.target.value); setError(""); }}
-                placeholder="Nhập tên đăng nhập"
-                autoComplete="username"
-                style={{
-                  width: "100%", padding: "10px 12px",
-                  border: `1px solid ${error ? "#ef4444" : theme.inputBorder}`,
-                  borderRadius: 8, fontSize: 14,
-                  background: theme.input, color: theme.text,
-                  outline: "none", boxSizing: "border-box",
-                  transition: "border-color 0.15s",
-                }}
-                onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-                onBlur={(e) => e.target.style.borderColor = error ? "#ef4444" : theme.inputBorder}
-              />
+              <div style={{ position: "relative" }}>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={e => { setUsername(e.target.value); setError(""); }}
+                  onFocus={() => setFocused("user")}
+                  onBlur={() => setFocused("")}
+                  placeholder="Nhập tên đăng nhập"
+                  autoComplete="username"
+                  style={{
+                    width: "100%", padding: "13px 16px",
+                    border: `2px solid ${focused === "user" ? "#6366f1" : error ? "#ef4444" : "#e2e8f0"}`,
+                    borderRadius: 12, fontSize: 14,
+                    background: "#fff", color: "#0f172a",
+                    outline: "none", boxSizing: "border-box",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    boxShadow: focused === "user" ? "0 0 0 4px rgba(99,102,241,0.1)" : "none",
+                  }}
+                />
+              </div>
             </div>
 
             {/* Password */}
-            <div style={{ marginBottom: 8 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={{
                 display: "block", fontSize: 13, fontWeight: 600,
-                color: theme.text, marginBottom: 6,
+                color: "#374151", marginBottom: 7,
               }}>
                 Mật khẩu
               </label>
@@ -182,61 +255,41 @@ export default function Login() {
                 <input
                   type={showPw ? "text" : "password"}
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                  onChange={e => { setPassword(e.target.value); setError(""); }}
+                  onFocus={() => setFocused("pw")}
+                  onBlur={() => setFocused("")}
                   placeholder="Nhập mật khẩu"
                   autoComplete="current-password"
                   style={{
-                    width: "100%", padding: "10px 40px 10px 12px",
-                    border: `1px solid ${error ? "#ef4444" : theme.inputBorder}`,
-                    borderRadius: 8, fontSize: 14,
-                    background: theme.input, color: theme.text,
+                    width: "100%", padding: "13px 48px 13px 16px",
+                    border: `2px solid ${focused === "pw" ? "#6366f1" : error ? "#ef4444" : "#e2e8f0"}`,
+                    borderRadius: 12, fontSize: 14,
+                    background: "#fff", color: "#0f172a",
                     outline: "none", boxSizing: "border-box",
-                    transition: "border-color 0.15s",
+                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    boxShadow: focused === "pw" ? "0 0 0 4px rgba(99,102,241,0.1)" : "none",
                   }}
-                  onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
-                  onBlur={(e) => e.target.style.borderColor = error ? "#ef4444" : theme.inputBorder}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
+                <button type="button" onClick={() => setShowPw(!showPw)}
                   style={{
-                    position: "absolute", right: 10, top: "50%",
+                    position: "absolute", right: 14, top: "50%",
                     transform: "translateY(-50%)",
                     background: "none", border: "none",
-                    cursor: "pointer", color: theme.subtext, padding: 0,
-                  }}
-                >
-                  {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
+                    cursor: "pointer", color: "#94a3b8", padding: 0,
+                    display: "flex", alignItems: "center",
+                  }}>
+                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
 
-            {/* Remember + Forgot */}
-            <div style={{
-              display: "flex", alignItems: "center",
-              justifyContent: "space-between", marginBottom: 16,
-            }}>
-              <label style={{
-                display: "flex", alignItems: "center", gap: 7,
-                fontSize: 13, color: theme.subtext, cursor: "pointer",
-              }}>
-                <input
-                  type="checkbox"
-                  checked={remember}
-                  onChange={(e) => setRemember(e.target.checked)}
-                  style={{ accentColor: "#2563eb", width: 14, height: 14 }}
-                />
-                Ghi nhớ đăng nhập
-              </label>
+            {/* Remember */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
               <button type="button" style={{
                 background: "none", border: "none",
-                fontSize: 13, color: "#2563eb",
-                cursor: "pointer", padding: 0,
-                textDecoration: "none",
-              }}
-                onMouseEnter={(e) => e.target.style.textDecoration = "underline"}
-                onMouseLeave={(e) => e.target.style.textDecoration = "none"}
-              >
+                fontSize: 13, color: "#6366f1", cursor: "pointer",
+                padding: 0, fontWeight: 500,
+              }}>
                 Quên mật khẩu?
               </button>
             </div>
@@ -245,11 +298,11 @@ export default function Login() {
             {error && (
               <div style={{
                 background: "#fef2f2", border: "1px solid #fecaca",
-                borderRadius: 8, padding: "10px 14px",
-                color: "#dc2626", fontSize: 13,
-                marginBottom: 16, fontWeight: 500,
+                borderRadius: 10, padding: "11px 14px",
+                color: "#dc2626", fontSize: 13, fontWeight: 500,
+                marginBottom: 20, display: "flex", alignItems: "center", gap: 8,
               }}>
-                {error}
+                <span style={{ fontSize: 16 }}>⚠️</span> {error}
               </div>
             )}
 
@@ -258,126 +311,64 @@ export default function Login() {
               type="submit"
               disabled={loading}
               style={{
-                width: "100%", padding: "11px",
+                width: "100%", padding: "14px",
                 background: loading
-                  ? "#93c5fd"
-                  : "linear-gradient(135deg, #2563eb, #1d4ed8)",
-                border: "none", borderRadius: 8,
-                color: "#fff", fontSize: 14, fontWeight: 700,
+                  ? "#a5b4fc"
+                  : "linear-gradient(135deg, #6366f1 0%, #4f46e5 50%, #3b82f6 100%)",
+                border: "none", borderRadius: 12,
+                color: "#fff", fontSize: 15, fontWeight: 700,
                 cursor: loading ? "not-allowed" : "pointer",
                 display: "flex", alignItems: "center",
-                justifyContent: "center", gap: 8,
-                transition: "all 0.15s",
-                boxShadow: loading ? "none" : "0 4px 12px rgba(37,99,235,0.3)",
+                justifyContent: "center", gap: 10,
+                transition: "all 0.2s",
+                boxShadow: loading ? "none" : "0 4px 20px rgba(99,102,241,0.4)",
+                letterSpacing: 0.3,
               }}
+              onMouseEnter={e => { if (!loading) e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 8px 28px rgba(99,102,241,0.5)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = loading ? "none" : "0 4px 20px rgba(99,102,241,0.4)"; }}
             >
               {loading ? (
                 <>
                   <span style={{
-                    width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)",
+                    width: 18, height: 18,
+                    border: "2.5px solid rgba(255,255,255,0.35)",
                     borderTopColor: "#fff", borderRadius: "50%",
-                    display: "inline-block", animation: "spin 0.7s linear infinite",
+                    display: "inline-block",
+                    animation: "spin 0.7s linear infinite",
                   }} />
                   Đang đăng nhập...
                 </>
               ) : (
-                <><LogIn size={16} /> Đăng nhập</>
+                <><LogIn size={18} /> Đăng nhập</>
               )}
             </button>
           </form>
 
-          {/* ── Quick Login ── */}
-          <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px solid ${theme.border}` }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8, marginBottom: 12,
-            }}>
-              <Zap size={14} color="#f59e0b" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: theme.subtext,
-                             textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                Đăng nhập nhanh (Demo)
-              </span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.username}
-                  onClick={() => quickLogin(acc)}
-                  disabled={loading}
-                  style={{
-                    padding: "8px 10px",
-                    background: acc.bg,
-                    border: `1px solid ${acc.color}30`,
-                    borderRadius: 8, cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: 12, fontWeight: 700, color: acc.color,
-                    transition: "all 0.15s",
-                    opacity: loading ? 0.6 : 1,
-                  }}
-                  onMouseEnter={(e) => { if (!loading) e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
-                >
-                  {acc.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* ── Demo accounts table ── */}
-        <div style={{
-          marginTop: 16,
-          background: theme.demoBg,
-          border: `1px solid ${theme.border}`,
-          borderRadius: 12, padding: 16,
-        }}>
-          <p style={{ fontSize: 11, fontWeight: 700, color: theme.subtext,
-                      textTransform: "uppercase", letterSpacing: "0.5px",
-                      margin: "0 0 10px" }}>
-            Tài khoản demo
+          {/* Footer */}
+          <p style={{
+            textAlign: "center", fontSize: 12,
+            color: "#94a3b8", marginTop: 32,
+          }}>
+            © 2026 HR &amp; Payroll System · Công ty X
           </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {DEMO_ACCOUNTS.map((acc) => {
-              const rc = ROLE_COLORS[acc.label] || { color: "#5a6478", bg: "#f4f6fb" };
-              const emailMap = {
-                "admin":           "admin@companyx.com",
-                "hr_manager":      "hr@companyx.com",
-                "payroll_manager": "payroll@companyx.com",
-                "employee":        "employee@companyx.com",
-              };
-              return (
-                <div key={acc.username} style={{
-                  display: "flex", alignItems: "center",
-                  justifyContent: "space-between", fontSize: 12,
-                }}>
-                  <div>
-                    <span style={{ color: theme.subtext, fontFamily: "monospace" }}>
-                      {acc.username} / <strong style={{ color: theme.text }}>{acc.password}</strong>
-                    </span>
-                    <div style={{ fontSize: 11, color: theme.subtext, marginTop: 1 }}>
-                      {emailMap[acc.username]}
-                    </div>
-                  </div>
-                  <span style={{
-                    background: rc.bg, color: rc.color,
-                    padding: "2px 8px", borderRadius: 20,
-                    fontSize: 11, fontWeight: 700, flexShrink: 0,
-                  }}>
-                    {acc.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
         </div>
-
-        <p style={{ textAlign: "center", fontSize: 12, color: theme.subtext, marginTop: 16 }}>
-          © 2026 HR &amp; Payroll System · Công ty X
-        </p>
       </div>
 
       <style>{`
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes blobPulse {
+          0%, 100% { transform: scale(1) translate(0, 0); }
+          33%       { transform: scale(1.08) translate(10px, -15px); }
+          66%       { transform: scale(0.95) translate(-8px, 10px); }
+        }
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateX(-16px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+        @media (max-width: 768px) {
+          div[style*="flex: 0 0 52%"] { display: none !important; }
         }
       `}</style>
     </div>

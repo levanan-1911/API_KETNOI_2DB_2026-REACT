@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 const API = "http://localhost:5000";
-const token = () => localStorage.getItem("token") || "";
+const token = () => localStorage.getItem("hr_token") || "";
 
 function Skeleton({ h = 14, w = "100%" }) {
   return (
@@ -847,3 +847,4 @@ export default function Admin() {
     </div>
   );
 }
+

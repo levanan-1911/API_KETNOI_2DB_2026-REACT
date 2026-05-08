@@ -197,13 +197,14 @@ export default function Payroll() {
   const nav = useNavigate();
 
   const [rows,       setRows]       = useState([]);
+  const [allEmps,    setAllEmps]    = useState([]); // toàn bộ nhân viên
   const [months,     setMonths]     = useState([]);
   const [month,      setMonth]      = useState("");
   const [search,     setSearch]     = useState("");
   const [filterDept, setFilterDept] = useState("all");
   const [loading,    setLoading]    = useState(true);
   const [modal,      setModal]      = useState(null);
-  const [savedId,    setSavedId]    = useState(null); // highlight row vừa lưu
+  const [showNoSalary, setShowNoSalary] = useState(true); // hiện/ẩn NV chưa có lương
 
   /* Load danh sách tháng */
   useEffect(() => {
@@ -213,6 +214,11 @@ export default function Payroll() {
         setMonths(data);
         if (data.length > 0) setMonth(data[0]);
       })
+      .catch(() => {});
+    // Load toàn bộ nhân viên để phát hiện người chưa có lương
+    fetch("http://localhost:5000/api/employees")
+      .then(r => r.json())
+      .then(data => setAllEmps(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, []);
 
@@ -233,12 +239,22 @@ export default function Payroll() {
   /* Filter */
   const deptList = ["all", ...new Set(rows.map(r => r.DepartmentName).filter(Boolean))];
 
+  // Nhân viên đã có lương tháng này
+  const empIdsWithSalary = new Set(rows.map(r => r.EmployeeID));
+  // Nhân viên chưa có lương tháng này
+  const empsNoSalary = allEmps.filter(e => !empIdsWithSalary.has(e.EmployeeID));
+
   const filtered = rows.filter((r) => {
     const matchSearch = r.FullName?.toLowerCase().includes(search.toLowerCase()) ||
                         r.DepartmentName?.toLowerCase().includes(search.toLowerCase());
     const matchDept   = filterDept === "all" || r.DepartmentName === filterDept;
     return matchSearch && matchDept;
   });
+
+  const filteredNoSalary = empsNoSalary.filter(e =>
+    e.FullName?.toLowerCase().includes(search.toLowerCase()) ||
+    e.Department?.toLowerCase().includes(search.toLowerCase())
+  );
 
   /* Summary */
   const totalBase = rows.reduce((s, r) => s + Number(r.BaseSalary || 0), 0);
@@ -326,8 +342,21 @@ export default function Payroll() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ maxWidth: 280, fontSize: 13 }}
           />
+          {/* Toggle hiện NV chưa có lương */}
+          {empsNoSalary.length > 0 && (
+            <button onClick={() => setShowNoSalary(!showNoSalary)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: showNoSalary ? "#fef2f2" : "#f4f6fb",
+                border: `1px solid ${showNoSalary ? "#fecaca" : "#e8ecf0"}`,
+                borderRadius: 8, color: showNoSalary ? "#dc2626" : "#5a6478",
+                fontWeight: 600, fontSize: 12, padding: "6px 12px", cursor: "pointer",
+              }}>
+              {showNoSalary ? "🔴" : "⚪"} {empsNoSalary.length} NV chưa có lương
+            </button>
+          )}
           <span style={{ fontSize: 13, color: "#8a94a6", marginLeft: "auto" }}>
-            {filtered.length} bản ghi
+            {filtered.length} bản ghi{empsNoSalary.length > 0 ? ` + ${empsNoSalary.length} chưa có lương` : ""}
           </span>
         </div>
 
@@ -461,6 +490,66 @@ export default function Payroll() {
                   <td />
                 </tr>
               </tfoot>
+            )}
+
+            {/* Nhân viên chưa có lương tháng này */}
+            {!loading && showNoSalary && filteredNoSalary.length > 0 && (
+              <tbody>
+                <tr>
+                  <td colSpan={9} style={{ padding: "10px 16px", background: "#fffbeb",
+                                           borderTop: "2px dashed #fde68a" }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: "#d97706",
+                                   display: "flex", alignItems: "center", gap: 6 }}>
+                      ⚠️ Nhân viên chưa có lương tháng này — cần vào Tính lương để tạo
+                    </span>
+                  </td>
+                </tr>
+                {filteredNoSalary.map(e => (
+                  <tr key={`no-${e.EmployeeID}`} style={{ background: "#fffbeb", opacity: 0.85 }}>
+                    <td>
+                      <span style={{ fontFamily: "monospace", fontSize: 12,
+                                     background: "#fde68a", padding: "2px 8px",
+                                     borderRadius: 6, color: "#92400e" }}>
+                        #{e.EmployeeID}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: "#1e2a3a", fontSize: 13 }}>{e.FullName}</div>
+                      <span style={{ fontSize: 10, background: "#fef3c7", color: "#d97706",
+                                     border: "1px solid #fde68a", padding: "1px 6px",
+                                     borderRadius: 10, fontWeight: 700 }}>
+                        Chưa có lương
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: 12, color: "#5a6478", background: "#f4f6fb",
+                                     padding: "2px 8px", borderRadius: 6 }}>
+                        {e.Department || "—"}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: 13, color: "#5a6478" }}>{e.Position || "—"}</td>
+                    <td className="text-end" style={{ color: "#8a94a6", fontSize: 13 }}>—</td>
+                    <td className="text-end" style={{ color: "#8a94a6", fontSize: 13 }}>—</td>
+                    <td className="text-end" style={{ color: "#8a94a6", fontSize: 13 }}>—</td>
+                    <td className="text-end">
+                      <span style={{ background: "#f4f6fb", color: "#8a94a6",
+                                     padding: "3px 10px", borderRadius: 20,
+                                     fontSize: 12, fontWeight: 600 }}>
+                        Chưa tính
+                      </span>
+                    </td>
+                    <td className="text-center">
+                      <button onClick={() => nav("/payroll-calc")}
+                        style={{ border: "1px solid #fde68a", background: "#fffbeb", color: "#d97706",
+                                 borderRadius: 7, padding: "5px 10px", cursor: "pointer",
+                                 display: "inline-flex", alignItems: "center", gap: 4,
+                                 fontSize: 12, fontWeight: 600 }}>
+                        ➕ Tạo lương
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             )}
           </table>
         </div>

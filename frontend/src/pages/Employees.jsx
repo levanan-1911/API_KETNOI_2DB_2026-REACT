@@ -8,6 +8,15 @@ import {
 
 const API = "http://localhost:5000";
 
+/* Chuẩn hóa chuỗi tiếng Việt — bỏ dấu để tìm kiếm không phân biệt dấu */
+const normalize = (str) =>
+  (str || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")  // bỏ dấu
+    .replace(/đ/g, "d")               // đ → d
+    .replace(/Đ/g, "d");              // Đ → d
+
 function Skeleton({ h = 16, w = "100%" }) {
   return (
     <div style={{
@@ -19,13 +28,21 @@ function Skeleton({ h = 16, w = "100%" }) {
 }
 
 const STATUS_MAP = {
-  Active:   { label: "Đang làm",  color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
-  Inactive: { label: "Đã nghỉ",   color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
-  OnLeave:  { label: "Nghỉ phép", color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  // Tiếng Anh (chuẩn)
+  "Active":        { label: "Đang làm",    color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+  "Inactive":      { label: "Đã nghỉ",     color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  "OnLeave":       { label: "Nghỉ phép",   color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  // Tiếng Việt (thực tế trong DB)
+  "Đang làm việc": { label: "Đang làm",    color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+  "Nghỉ phép":     { label: "Nghỉ phép",   color: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+  "Thử việc":      { label: "Thử việc",    color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+  "Thực tập":      { label: "Thực tập",    color: "#0891b2", bg: "#ecfeff", border: "#a5f3fc" },
+  "Đã nghỉ":       { label: "Đã nghỉ",     color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
+  "Đã nghỉ việc":  { label: "Đã nghỉ",     color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
 };
 
 function StatusBadge({ status }) {
-  const s = STATUS_MAP[status] || STATUS_MAP.Active;
+  const s = STATUS_MAP[status] || { label: status || "—", color: "#5a6478", bg: "#f4f6fb", border: "#e8ecf0" };
   return (
     <span style={{
       background: s.bg, color: s.color,
@@ -143,10 +160,14 @@ export default function Employees() {
 
   /* ── Filter ── */
   const filtered = employees.filter(e => {
+    const q = normalize(search);
     const matchSearch = !search ||
-      e.FullName?.toLowerCase().includes(search.toLowerCase()) ||
-      e.Email?.toLowerCase().includes(search.toLowerCase()) ||
-      e.PhoneNumber?.includes(search);
+      normalize(e.FullName).includes(q) ||
+      normalize(e.Email).includes(q) ||
+      (e.PhoneNumber || "").includes(search) ||
+      normalize(e.Department).includes(q) ||
+      normalize(e.Position).includes(q) ||
+      String(e.EmployeeID).includes(search);
     const matchDept   = !filterDept   || String(e.DepartmentID) === filterDept;
     const matchStatus = !filterStatus || e.Status === filterStatus;
     return matchSearch && matchDept && matchStatus;
@@ -154,10 +175,12 @@ export default function Employees() {
 
   /* ── Summary ── */
   const summary = {
-    total:    employees.length,
-    active:   employees.filter(e => e.Status === "Active").length,
-    inactive: employees.filter(e => e.Status === "Inactive").length,
-    onLeave:  employees.filter(e => e.Status === "OnLeave").length,
+    total:      employees.length,
+    active:     employees.filter(e => ["Active","Đang làm việc"].includes(e.Status)).length,
+    probation:  employees.filter(e => e.Status === "Thử việc").length,
+    intern:     employees.filter(e => e.Status === "Thực tập").length,
+    inactive:   employees.filter(e => ["Inactive","Đã nghỉ","Đã nghỉ việc"].includes(e.Status)).length,
+    onLeave:    employees.filter(e => ["OnLeave","Nghỉ phép"].includes(e.Status)).length,
   };
 
   const avatarColor = (name) => {
@@ -235,28 +258,29 @@ export default function Employees() {
       </div>
 
       {/* ── Summary cards ── */}
-      <div className="row g-3">
+      <div style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
         {[
-          { label: "Tổng nhân viên", value: summary.total,    icon: Users,        bg: "#eff6ff", color: "#2563eb" },
-          { label: "Đang làm việc",  value: summary.active,   icon: CheckCircle,  bg: "#f0fdf4", color: "#16a34a" },
-          { label: "Nghỉ phép",      value: summary.onLeave,  icon: Calendar,     bg: "#fffbeb", color: "#d97706" },
-          { label: "Đã nghỉ việc",   value: summary.inactive, icon: XCircle,      bg: "#fef2f2", color: "#dc2626" },
+          { label: "Tổng nhân viên", value: summary.total,     icon: Users,        bg: "#eff6ff", color: "#2563eb" },
+          { label: "Đang làm việc",  value: summary.active,    icon: CheckCircle,  bg: "#f0fdf4", color: "#16a34a" },
+          ...(summary.probation > 0 ? [{ label: "Thử việc",  value: summary.probation, icon: Users, bg: "#eff6ff", color: "#2563eb" }] : []),
+          ...(summary.intern    > 0 ? [{ label: "Thực tập",  value: summary.intern,    icon: Users, bg: "#ecfeff", color: "#0891b2" }] : []),
+          { label: "Nghỉ phép",      value: summary.onLeave,   icon: Calendar,     bg: "#fffbeb", color: "#d97706" },
+          { label: "Đã nghỉ việc",   value: summary.inactive,  icon: XCircle,      bg: "#fef2f2", color: "#dc2626" },
         ].map((c, i) => (
-          <div key={i} className="col-6 col-xl-3">
-            <div className="stat-card">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div>
-                  <p style={{
-                    fontSize: 11, color: "#8a94a6", fontWeight: 600,
-                    textTransform: "uppercase", letterSpacing: "0.5px", margin: "0 0 4px",
-                  }}>{c.label}</p>
-                  <p style={{ fontSize: 22, fontWeight: 800, color: "#1e2a3a", margin: 0 }}>
-                    {loading ? "—" : c.value}
-                  </p>
-                </div>
-                <div className="stat-icon" style={{ background: c.bg }}>
-                  <c.icon size={20} color={c.color} />
-                </div>
+          <div key={i} className="stat-card" style={{ flex: "1 1 160px", minWidth: 160 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div>
+                <p style={{
+                  fontSize: 11, color: "#8a94a6", fontWeight: 600,
+                  textTransform: "uppercase", letterSpacing: "0.5px",
+                  margin: "0 0 4px", whiteSpace: "nowrap",
+                }}>{c.label}</p>
+                <p style={{ fontSize: 22, fontWeight: 800, color: "#1e2a3a", margin: 0 }}>
+                  {loading ? "—" : c.value}
+                </p>
+              </div>
+              <div className="stat-icon" style={{ background: c.bg, flexShrink: 0 }}>
+                <c.icon size={20} color={c.color} />
               </div>
             </div>
           </div>
@@ -274,7 +298,7 @@ export default function Employees() {
           }}>
             <Search size={14} color="#8a94a6" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Tìm theo tên, email, SĐT..."
+              placeholder="Tìm theo tên, email, SĐT, phòng ban, chức vụ..."
               style={{
                 border: "none", background: "transparent", outline: "none",
                 fontSize: 13, color: "#1e2a3a", width: "100%",
@@ -300,9 +324,11 @@ export default function Employees() {
           <select className="form-select" style={{ width: "auto", fontSize: 13, minWidth: 140 }}
             value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
             <option value="">Tất cả trạng thái</option>
-            <option value="Active">Đang làm</option>
-            <option value="OnLeave">Nghỉ phép</option>
-            <option value="Inactive">Đã nghỉ</option>
+            <option value="Đang làm việc">Đang làm việc</option>
+            <option value="Thử việc">Thử việc</option>
+            <option value="Thực tập">Thực tập</option>
+            <option value="Nghỉ phép">Nghỉ phép</option>
+            <option value="Đã nghỉ việc">Đã nghỉ việc</option>
           </select>
 
           <span style={{ fontSize: 13, color: "#8a94a6", marginLeft: "auto" }}>

@@ -360,17 +360,47 @@ export default function PayrollCalc() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [empRes, attRes] = await Promise.all([
+      const curMonthStr = `${year}-${String(month).padStart(2,"0")}`;
+
+      // Bước 1: lấy danh sách tháng có dữ liệu để tìm tháng gần nhất ≠ tháng hiện tại
+      const allMonths = await fetch("http://localhost:5000/api/payroll/months")
+        .then(r => r.json()).catch(() => []);
+
+      // Tháng gần nhất trong DB khác tháng đang tính
+      const prevMonthStr = Array.isArray(allMonths)
+        ? allMonths.find(m => m !== curMonthStr) || ""
+        : "";
+
+      const [empRes, attRes, prevPayroll, curPayroll] = await Promise.all([
         fetch("http://localhost:5000/api/employees").then(r => r.json()),
-        fetch(`http://localhost:5000/api/attendance?month=${year}-${String(month).padStart(2,"0")}`).then(r => r.json()),
+        fetch(`http://localhost:5000/api/attendance?month=${curMonthStr}`).then(r => r.json()),
+        // Lương tháng gần nhất trong DB (fallback lương CB)
+        prevMonthStr
+          ? fetch(`http://localhost:5000/api/payroll?month=${prevMonthStr}`).then(r => r.json())
+          : Promise.resolve([]),
+        // Lương tháng hiện tại (nếu đã có trong DB)
+        fetch(`http://localhost:5000/api/payroll?month=${curMonthStr}`).then(r => r.json()),
       ]);
 
+      // Map chấm công theo EmployeeID
       const attMap = {};
       if (Array.isArray(attRes)) {
         attRes.forEach(a => { attMap[a.EmployeeID] = a; });
       }
 
-      // Lấy bản nháp đã lưu (nếu có)
+      // Map lương tháng trước theo EmployeeID
+      const prevPayMap = {};
+      if (Array.isArray(prevPayroll)) {
+        prevPayroll.forEach(p => { prevPayMap[p.EmployeeID] = p; });
+      }
+
+      // Map lương tháng hiện tại theo EmployeeID (đã lưu DB)
+      const curPayMap = {};
+      if (Array.isArray(curPayroll)) {
+        curPayroll.forEach(p => { curPayMap[p.EmployeeID] = p; });
+      }
+
+      // Bản nháp localStorage (ưu tiên cao nhất)
       const draft = loadFromStorage(month, year);
       const draftMap = {};
       if (draft) {
@@ -381,22 +411,37 @@ export default function PayrollCalc() {
       }
 
       const rows = empRes.map(emp => {
-        const att  = attMap[emp.EmployeeID];
-        const saved = draftMap[emp.EmployeeID];
+        const att     = attMap[emp.EmployeeID];
+        const saved   = draftMap[emp.EmployeeID];   // bản nháp localStorage
+        const curPay  = curPayMap[emp.EmployeeID];  // lương tháng này (đã lưu DB)
+        const prevPay = prevPayMap[emp.EmployeeID]; // lương tháng trước
+
+        // Lương CB: ưu tiên nháp > tháng hiện tại DB > tháng trước DB > 0
+        const baseSalaryDefault =
+          curPay?.BaseSalary  != null ? Number(curPay.BaseSalary)  :
+          prevPay?.BaseSalary != null ? Number(prevPay.BaseSalary) : 0;
+
+        // Thưởng: ưu tiên nháp > tháng hiện tại DB > 0
+        const bonusDefault =
+          curPay?.Bonus != null ? Number(curPay.Bonus) : 0;
+
         return {
           EmployeeID: emp.EmployeeID,
           FullName:   emp.FullName,
           Department: emp.Department,
           Position:   emp.Position,
-          // Ưu tiên: bản nháp localStorage > chấm công API > mặc định
-          baseSalary: saved?.baseSalary  ?? 0,
+          // Ưu tiên: nháp localStorage > DB tháng này > DB tháng trước > chấm công > mặc định
+          baseSalary: saved?.baseSalary  ?? baseSalaryDefault,
           workDays:   saved?.workDays    ?? (att?.WorkDays      ?? stdDays),
           stdDays:    saved?.stdDays     ?? stdDays,
           otHours:    saved?.otHours     ?? (att?.OvertimeHours ?? 0),
           otRate:     saved?.otRate      ?? 1.5,
-          bonus:      saved?.bonus       ?? 0,
+          bonus:      saved?.bonus       ?? bonusDefault,
           allowance:  saved?.allowance   ?? 0,
           dependents: saved?.dependents  ?? 0,
+          // Đánh dấu nguồn dữ liệu để hiển thị UI
+          _source:    saved ? "draft" : curPay ? "current" : prevPay ? "previous" : "empty",
+          _prevMonth: prevMonthStr, // tháng tham chiếu để hiển thị badge
         };
       });
       setEmployees(empRes);
@@ -748,8 +793,30 @@ export default function PayrollCalc() {
                             <div style={{ fontWeight: 600, fontSize: 13, color: "#1e2a3a" }}>
                               {emp.FullName}
                             </div>
-                            <div style={{ fontSize: 11, color: "#8a94a6" }}>
+                            <div style={{ fontSize: 11, color: "#8a94a6", display: "flex", alignItems: "center", gap: 5, marginTop: 2 }}>
                               {emp.Department || "—"}
+                              {emp._source === "current" && (
+                                <span style={{ background: "#eff6ff", color: "#2563eb", border: "1px solid #bfdbfe", padding: "1px 6px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                                  Tháng này
+                                </span>
+                              )}
+                              {emp._source === "previous" && (
+                                <span style={{ background: "#fffbeb", color: "#d97706", border: "1px solid #fde68a", padding: "1px 6px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                                  {emp._prevMonth
+                                    ? new Date(emp._prevMonth + "-01").toLocaleDateString("vi-VN", { month: "numeric", year: "numeric" })
+                                    : "Tháng trước"}
+                                </span>
+                              )}
+                              {emp._source === "draft" && (
+                                <span style={{ background: "#f0fdf4", color: "#16a34a", border: "1px solid #bbf7d0", padding: "1px 6px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                                  Bản nháp
+                                </span>
+                              )}
+                              {emp._source === "empty" && (
+                                <span style={{ background: "#fef2f2", color: "#dc2626", border: "1px solid #fecaca", padding: "1px 6px", borderRadius: 10, fontSize: 10, fontWeight: 700 }}>
+                                  🆕 Nhân viên mới
+                                </span>
+                              )}
                             </div>
                           </td>
 

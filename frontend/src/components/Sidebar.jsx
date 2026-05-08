@@ -4,22 +4,32 @@ import {
   Building2, Calendar, BarChart3, Bell,
   UserCircle, Settings, ChevronLeft, ChevronRight,
 } from "lucide-react";
+import Logo from "./Logo";
+import { useAuth } from "../contexts/AuthContext";
 
-const menuItems = [
-  { id: "dashboard",   label: "Tổng quan",              icon: LayoutDashboard, path: "/" },
-  { id: "employees",   label: "Nhân viên",               icon: Users,           path: "/employees" },
-  { id: "payroll",     label: "Tiền lương",              icon: DollarSign,      path: "/payroll" },
-  { id: "payroll-calc",label: "Tính lương",              icon: Calculator,      path: "/payroll-calc" },
-  { id: "departments", label: "Phòng ban & Chức vụ",     icon: Building2,       path: "/departments" },
-  { id: "attendance",  label: "Chấm công & Nghỉ phép",   icon: Calendar,        path: "/attendance" },
-  { id: "reports",     label: "Báo cáo",                 icon: BarChart3,       path: "/reports" },
-  { id: "alerts",      label: "Cảnh báo",                icon: Bell,            path: "/alerts" },
-  { id: "profile",     label: "Hồ sơ cá nhân",           icon: UserCircle,      path: "/profile" },
-  { id: "admin",       label: "Quản trị",                icon: Settings,        path: "/admin" },
+const ALL_MENU = [
+  { id: "dashboard",    label: "Tổng quan",            icon: LayoutDashboard, path: "/",            roles: null },
+  { id: "employees",    label: "Nhân viên",             icon: Users,           path: "/employees",   roles: ["Admin","HR_Manager"] },
+  { id: "payroll",      label: "Tiền lương",            icon: DollarSign,      path: "/payroll",     roles: ["Admin","Payroll_Manager"] },
+  { id: "payroll-calc", label: "Tính lương",            icon: Calculator,      path: "/payroll-calc",roles: ["Admin","Payroll_Manager"] },
+  { id: "departments",  label: "Phòng ban & Chức vụ",   icon: Building2,       path: "/departments", roles: ["Admin","HR_Manager"] },
+  { id: "attendance",   label: "Chấm công & Nghỉ phép", icon: Calendar,        path: "/attendance",  roles: ["Admin","HR_Manager"] },
+  { id: "reports",      label: "Báo cáo",               icon: BarChart3,       path: "/reports",     roles: ["Admin","HR_Manager","Payroll_Manager"] },
+  { id: "alerts",       label: "Cảnh báo",              icon: Bell,            path: "/alerts",      roles: ["Admin","HR_Manager","Payroll_Manager"] },
+  { id: "profile",      label: "Hồ sơ cá nhân",         icon: UserCircle,      path: "/profile",     roles: null },
+  { id: "admin",        label: "Quản trị",              icon: Settings,        path: "/admin",       roles: ["Admin"] },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
+  const { hasRole, user } = useAuth();
+
+  // Lọc menu theo role
+  const menuItems = ALL_MENU.filter(item => {
+    if (!item.roles) return true;           // null = tất cả role
+    if (user?.role === "Admin") return true; // Admin thấy tất cả
+    return item.roles.includes(user?.role);
+  });
 
   const isActive = (path) => {
     if (path === "/") return location.pathname === "/";
@@ -31,7 +41,13 @@ export default function Sidebar({ collapsed, onToggle }) {
     <div className={`sidebar ${collapsed ? "collapsed" : ""}`}>
       {/* Logo */}
       <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">HR</div>
+        <div className="sidebar-logo-icon">
+          <Logo
+            size={collapsed ? 32 : 36}
+            color="#fff"
+            bg="transparent"
+          />
+        </div>
         {!collapsed && (
           <div className="sidebar-logo-text">
             <h1>HR &amp; Payroll</h1>
@@ -47,7 +63,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           const active = isActive(item.path);
 
           // Divider trước Hồ sơ cá nhân
-          const showDivider = idx === 8;
+          const showDivider = item.id === "profile";
 
           return (
             <div key={item.id}>

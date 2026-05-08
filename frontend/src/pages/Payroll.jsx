@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   DollarSign, Eye, Edit3, TrendingUp,
   TrendingDown, Users, RefreshCw, X, Check, AlertCircle,
-  Download, Filter,
 } from "lucide-react";
 
 /* ── helpers ─────────────────────────────────────────── */
@@ -16,29 +15,6 @@ const fmtShort = (n) => {
   if (n >= 1e6) return (n / 1e6).toFixed(1) + " tr";
   return new Intl.NumberFormat("vi-VN").format(n);
 };
-
-/* ── Export CSV ──────────────────────────────────────── */
-function exportCSV(rows, month) {
-  const headers = ["Mã NV", "Họ tên", "Phòng ban", "Chức vụ",
-                   "Lương CB", "Thưởng", "Khấu trừ", "Thực nhận"];
-  const lines = [
-    headers.join(","),
-    ...rows.map(r => [
-      r.EmployeeID,
-      `"${r.FullName}"`,
-      `"${r.DepartmentName || ""}"`,
-      `"${r.PositionName || ""}"`,
-      r.BaseSalary, r.Bonus, r.Deductions, r.NetSalary,
-    ].join(",")),
-  ];
-  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `bang-luong-${month}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /* ── Modal điều chỉnh lương ──────────────────────────── */
 function AdjustModal({ row, onClose, onSaved }) {
@@ -201,7 +177,7 @@ export default function Payroll() {
   const [months,     setMonths]     = useState([]);
   const [month,      setMonth]      = useState("");
   const [search,     setSearch]     = useState("");
-  const [filterDept, setFilterDept] = useState("all");
+  const [filterDept] = useState("all");
   const [loading,    setLoading]    = useState(true);
   const [modal,      setModal]      = useState(null);
   const [showNoSalary, setShowNoSalary] = useState(true); // hiện/ẩn NV chưa có lương
@@ -237,8 +213,6 @@ export default function Payroll() {
   useEffect(() => { if (month) load(); }, [month, load]);
 
   /* Filter */
-  const deptList = ["all", ...new Set(rows.map(r => r.DepartmentName).filter(Boolean))];
-
   // Nhân viên đã có lương tháng này
   const empIdsWithSalary = new Set(rows.map(r => r.EmployeeID));
   // Nhân viên chưa có lương tháng này

@@ -1,9 +1,10 @@
-﻿import { useEffect, useState, useCallback } from "react";
+﻿// eslint-disable-next-line unicode-bom
+import { useEffect, useState, useCallback } from "react";
 import {
   Shield, Users, Key, FileText, Settings, RefreshCw,
   Plus, Edit3, Trash2, X, Check, AlertCircle, CheckCircle,
   Search, Eye, EyeOff, Lock, Unlock, Activity,
-  ChevronRight, User, Mail,
+  ChevronRight,
 } from "lucide-react";
 
 const API = "http://localhost:5000";

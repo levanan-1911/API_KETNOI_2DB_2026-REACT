@@ -19,15 +19,7 @@ import Departments     from "./pages/Departments";
 import Attendance      from "./pages/Attendance";
 import Admin           from "./pages/Admin";
 
-const Placeholder = ({ title }) => (
-  <div style={{ display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                minHeight: 400, gap: 12 }}>
-    <div style={{ fontSize: 48 }}>🚧</div>
-    <h4 style={{ color: "#1e2a3a", fontWeight: 700 }}>{title}</h4>
-    <p style={{ color: "#8a94a6", fontSize: 13 }}>Tính năng đang được phát triển</p>
-  </div>
-);
+
 
 /* ── Ma trận phân quyền ──────────────────────────────────
    Admin          : toàn quyền (RoleRoute tự bypass)

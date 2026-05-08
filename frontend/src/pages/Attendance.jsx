@@ -1,12 +1,10 @@
-﻿import { useEffect, useState, useCallback } from "react";
+﻿// eslint-disable-next-line unicode-bom
+import { useEffect, useState, useCallback } from "react";
 import {
   Calendar, Clock, CheckCircle, XCircle, AlertCircle,
-  RefreshCw, Plus, X, Check, ChevronDown, Users,
+  RefreshCw, Plus, X, Check, Users,
   FileText, Search, Edit3,
 } from "lucide-react";
-
-const fmt = (n) =>
-  new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(n ?? 0);
 
 const API = "http://localhost:5000";
 const now = new Date();
@@ -357,7 +355,7 @@ export default function Attendance() {
     setDepts(Array.isArray(r) ? r : []);
   }, []);
 
-  useEffect(() => { loadDepts(); loadEmployees(); }, []);
+  useEffect(() => { loadDepts(); loadEmployees(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (activeTab === "att")   loadAtt();   }, [activeTab, loadAtt]);
   useEffect(() => { if (activeTab === "leave") loadLeave(); }, [activeTab, loadLeave]);
 

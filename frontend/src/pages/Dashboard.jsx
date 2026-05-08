@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  Users, DollarSign, TrendingUp, UserCheck,
-  Building2, Award, ArrowUpRight, ArrowDownRight,
+  Users, DollarSign, TrendingUp,
+  Award, ArrowUpRight, ArrowDownRight,
   RefreshCw, AlertCircle,
 } from "lucide-react";
 import {

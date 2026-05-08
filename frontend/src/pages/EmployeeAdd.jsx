@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  UserPlus, ArrowLeft, RefreshCw, CheckCircle, AlertCircle,
-  User, Mail, Phone, Building2, Briefcase, Calendar, ChevronDown,
+  UserPlus, ArrowLeft, RefreshCw, AlertCircle,
+  User, Mail, Phone, Building2, Calendar,
 } from "lucide-react";
 
 const API = "http://localhost:5000";

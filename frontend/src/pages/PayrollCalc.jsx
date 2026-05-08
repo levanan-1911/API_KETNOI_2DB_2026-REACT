@@ -1,4 +1,5 @@
-﻿import { useEffect, useState, useCallback } from "react";
+﻿// eslint-disable-next-line unicode-bom
+import { useEffect, useState, useCallback } from "react";
 import {
   Calculator, Users, DollarSign, TrendingUp, TrendingDown,
   RefreshCw, Save, Eye, X, ChevronDown, ChevronUp,
@@ -108,17 +109,6 @@ function Skeleton({ h = 20, w = "100%" }) {
       background: "linear-gradient(90deg,#f0f4f8 25%,#e8ecf0 50%,#f0f4f8 75%)",
       backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite",
     }} />
-  );
-}
-
-/* ── Số tiền có màu ─────────────────────────────────────── */
-function MoneyCell({ value, positive, size = 13 }) {
-  const color = positive ? "#16a34a" : "#dc2626";
-  const sign  = positive ? "+" : "-";
-  return (
-    <span style={{ color, fontWeight: 600, fontSize: size }}>
-      {sign}{fmt(Math.abs(value))}
-    </span>
   );
 }
 
@@ -344,7 +334,6 @@ export default function PayrollCalc() {
 
   const [month,      setMonth]      = useState(now.getMonth() + 1);
   const [year,       setYear]       = useState(now.getFullYear());
-  const [employees,  setEmployees]  = useState([]);
   const [calcRows,   setCalcRows]   = useState([]);
   const [loading,    setLoading]    = useState(false);
   const [saving,     setSaving]     = useState(false);
@@ -444,7 +433,6 @@ export default function PayrollCalc() {
           _prevMonth: prevMonthStr, // tháng tham chiếu để hiển thị badge
         };
       });
-      setEmployees(empRes);
       setCalcRows(rows);
     } catch (e) {
       showToast("Lỗi tải dữ liệu: " + e.message, "error");
@@ -453,6 +441,7 @@ export default function PayrollCalc() {
     }
   }, [month, year, stdDays]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadData(); }, [month, year]);
 
   /* ── Auto-save calcRows vào localStorage khi thay đổi ── */

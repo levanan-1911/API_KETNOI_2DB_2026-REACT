@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users, Search, Plus, Edit3, Trash2, RefreshCw,
-  ChevronDown, CheckCircle, XCircle, AlertCircle,
-  Phone, Mail, Building2, Briefcase, Calendar,
+  CheckCircle, XCircle, AlertCircle,
+  Phone, Mail, Building2, Calendar,
 } from "lucide-react";
 
 const API = "http://localhost:5000";

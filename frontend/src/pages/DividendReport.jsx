@@ -32,6 +32,7 @@ export default function DividendReport() {
       .catch(() => setLoading(false));
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [year]);
 
   const years = Array.from({ length: 5 }, (_, i) => String(currentYear - i));

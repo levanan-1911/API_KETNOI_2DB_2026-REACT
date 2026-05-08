@@ -22,7 +22,7 @@ const ALL_MENU = [
 
 export default function Sidebar({ collapsed, onToggle }) {
   const location = useLocation();
-  const { hasRole, user } = useAuth();
+  const { user } = useAuth();
 
   // Lọc menu theo role
   const menuItems = ALL_MENU.filter(item => {
@@ -58,7 +58,7 @@ export default function Sidebar({ collapsed, onToggle }) {
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {menuItems.map((item, idx) => {
+        {menuItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
 

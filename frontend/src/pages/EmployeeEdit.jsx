@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  Save, ArrowLeft, RefreshCw, AlertCircle, Trash2,
-  User, Mail, Phone, Building2, Calendar,
+  Save, ArrowLeft, RefreshCw, AlertCircle,
+  User, Building2,
 } from "lucide-react";
 
 const API = "http://localhost:5000";

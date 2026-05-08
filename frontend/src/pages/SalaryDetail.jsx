@@ -65,6 +65,7 @@ export default function SalaryDetail() {
       .catch((e) => { setError(e.message); setLoading(false); });
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [id]);
 
   /* Chart data – lịch sử lương */

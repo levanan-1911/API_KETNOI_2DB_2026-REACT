@@ -1,8 +1,9 @@
-﻿import { useEffect, useState, useCallback } from "react";
+﻿// eslint-disable-next-line unicode-bom
+import { useEffect, useState, useCallback } from "react";
 import {
   Building2, Award, Users, DollarSign,
   RefreshCw, Search, ChevronRight, AlertCircle,
-  X, UserCircle, Mail, Phone, Calendar, Briefcase,
+  X, Mail, Phone, Calendar, Briefcase,
 } from "lucide-react";
 
 /* ── helpers ─────────────────────────────────────────── */

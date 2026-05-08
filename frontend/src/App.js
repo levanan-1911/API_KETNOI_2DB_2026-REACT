@@ -1,5 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute  from "./components/ProtectedRoute";
 import Layout          from "./components/Layout";
+import Login           from "./pages/Login";
 import Dashboard       from "./pages/Dashboard";
 import Employees       from "./pages/Employees";
 import EmployeeAdd     from "./pages/EmployeeAdd";
@@ -23,33 +26,39 @@ const Placeholder = ({ title }) => (
 
 function App() {
   return (
-    <BrowserRouter>
-      <Layout>
+    <AuthProvider>
+      <BrowserRouter>
         <Routes>
-          {/* Dashboard */}
-          <Route path="/" element={<Dashboard />} />
+          {/* Public */}
+          <Route path="/login" element={<Login />} />
 
-          {/* Nhân viên */}
-          <Route path="/employees"     element={<Employees />} />
-          <Route path="/employees/add" element={<EmployeeAdd />} />
-          <Route path="/employees/:id" element={<EmployeeEdit />} />
-
-          {/* Lương & Thưởng */}
-          <Route path="/payroll"                  element={<Payroll />} />
-          <Route path="/salary/:id/details"       element={<SalaryDetail />} />
-          <Route path="/reports/dividend"         element={<DividendReport />} />
-
-          {/* Đang phát triển */}
-          <Route path="/payroll-calc" element={<Placeholder title="Tính lương" />} />
-          <Route path="/departments"  element={<Placeholder title="Phòng ban & Chức vụ" />} />
-          <Route path="/attendance"   element={<Placeholder title="Chấm công & Nghỉ phép" />} />
-          <Route path="/reports"      element={<Reports />} />
-          <Route path="/alerts"       element={<Alerts />} />
-          <Route path="/profile"      element={<Profile />} />
-          <Route path="/admin"        element={<Placeholder title="Quản trị hệ thống" />} />
+          {/* Protected – bọc trong Layout */}
+          <Route path="/*" element={
+            <ProtectedRoute>
+              <Layout>
+                <Routes>
+                  <Route path="/"                        element={<Dashboard />} />
+                  <Route path="/employees"               element={<Employees />} />
+                  <Route path="/employees/add"           element={<EmployeeAdd />} />
+                  <Route path="/employees/:id"           element={<EmployeeEdit />} />
+                  <Route path="/payroll"                 element={<Payroll />} />
+                  <Route path="/salary/:id/details"      element={<SalaryDetail />} />
+                  <Route path="/reports/dividend"        element={<DividendReport />} />
+                  <Route path="/profile"                 element={<Profile />} />
+                  <Route path="/reports"                 element={<Reports />} />
+                  <Route path="/alerts"                  element={<Alerts />} />
+                  <Route path="/payroll-calc"            element={<Placeholder title="Tính lương" />} />
+                  <Route path="/departments"             element={<Placeholder title="Phòng ban & Chức vụ" />} />
+                  <Route path="/attendance"              element={<Placeholder title="Chấm công & Nghỉ phép" />} />
+                  <Route path="/admin"                   element={<Placeholder title="Quản trị hệ thống" />} />
+                  <Route path="*"                        element={<Navigate to="/" replace />} />
+                </Routes>
+              </Layout>
+            </ProtectedRoute>
+          } />
         </Routes>
-      </Layout>
-    </BrowserRouter>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

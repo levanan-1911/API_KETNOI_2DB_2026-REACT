@@ -71,7 +71,7 @@ export default function SalaryDetail() {
   const chartData = [...history]
     .reverse()
     .map((h) => ({
-      month:   h.SalaryMonth ? h.SalaryMonth.slice(0, 7) : "",
+      month:   h.SalaryMonthStr || `${h.SalaryYear}-${String(h.SalaryMonth).padStart(2,'0')}`,
       base:    Number(h.BaseSalary  || 0) / 1e6,
       bonus:   Number(h.Bonus       || 0) / 1e6,
       net:     Number(h.NetSalary   || 0) / 1e6,
@@ -155,8 +155,8 @@ export default function SalaryDetail() {
                   <InfoRow label={<span style={{ display: "flex", gap: 6, alignItems: "center" }}><Building2 size={13} />Phòng ban</span>} value={d.DepartmentName || "—"} />
                   <InfoRow label={<span style={{ display: "flex", gap: 6, alignItems: "center" }}><Briefcase size={13} />Chức vụ</span>}   value={d.PositionName  || "—"} />
                   <InfoRow label={<span style={{ display: "flex", gap: 6, alignItems: "center" }}><User size={13} />Tháng lương</span>}
-                    value={d.SalaryMonth
-                      ? new Date(d.SalaryMonth).toLocaleDateString("vi-VN",
+                    value={d.SalaryMonthStr
+                      ? new Date(d.SalaryMonthStr + "-01").toLocaleDateString("vi-VN",
                           { month: "long", year: "numeric" })
                       : "—"} bold />
                 </>
@@ -318,8 +318,8 @@ export default function SalaryDetail() {
                               <span style={{ fontWeight: i === 0 ? 700 : 500,
                                              color: i === 0 ? "#2563eb" : "#374151",
                                              fontSize: 13 }}>
-                                {h.SalaryMonth
-                                  ? new Date(h.SalaryMonth).toLocaleDateString("vi-VN",
+                                {h.SalaryMonthStr
+                                  ? new Date(h.SalaryMonthStr + "-01").toLocaleDateString("vi-VN",
                                       { month: "long", year: "numeric" })
                                   : "—"}
                               </span>

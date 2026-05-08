@@ -84,7 +84,7 @@ function AdjustModal({ row, onClose, onSaved }) {
           <div>
             <h5 style={{ margin: 0, fontWeight: 700, color: "#1e2a3a" }}>Điều chỉnh lương</h5>
             <p style={{ margin: 0, fontSize: 13, color: "#8a94a6" }}>
-              {row.FullName} · {row.SalaryMonth}
+              {row.FullName} · {row.SalaryMonthStr || row.SalaryMonth}
             </p>
           </div>
           <button onClick={onClose} style={{ border: "none", background: "#f4f6fb",

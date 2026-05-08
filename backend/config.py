@@ -47,7 +47,7 @@ def get_mysql_connection():
             user="root",
             password="#Lean112005",
             database="payroll_2026",
-            autocommit=False
+            autocommit=True
         )
         return conn
     except Exception as e:

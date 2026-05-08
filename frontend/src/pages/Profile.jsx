@@ -9,7 +9,7 @@ import {
 const DEFAULT_PROFILE = {
   fullName:   "Admin Hệ thống",
   email:      "admin@company.com",
-  phone:      "0901 234 567",
+  phone:      "0337 629 712",
   department: "Phòng Nhân sự",
   position:   "Quản trị viên",
   role:       "Admin",

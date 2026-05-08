@@ -381,7 +381,7 @@ def get_payroll():
     Lấy danh sách lương từ MySQL.
     Query params: ?month=YYYY-MM (ví dụ: ?month=2024-09)
     """
-    month = request.args.get("month")   # dạng YYYY-MM
+    month = request.args.get("month")
     my  = get_mysql_connection()
     my_cur = my.cursor(dictionary=True)
 
@@ -396,7 +396,7 @@ def get_payroll():
             JOIN employees_payroll  ep ON s.EmployeeID   = ep.EmployeeID
             LEFT JOIN departments_payroll dp ON ep.DepartmentID = dp.DepartmentID
             LEFT JOIN positions_payroll   pp ON ep.PositionID   = pp.PositionID
-            WHERE DATE_FORMAT(s.SalaryMonth, '%%Y-%%m') = %s
+            WHERE DATE_FORMAT(s.SalaryMonth, '%Y-%m') = %s
             ORDER BY s.EmployeeID
         """, (month,))
     else:
@@ -414,10 +414,10 @@ def get_payroll():
         """)
 
     rows = my_cur.fetchall()
-    # Chuyển date → string
     for r in rows:
         if r.get("SalaryMonth"):
-            r["SalaryMonth"] = str(r["SalaryMonth"])
+            r["SalaryMonthStr"] = str(r["SalaryMonth"])[:7]
+            r["SalaryMonth"]    = str(r["SalaryMonth"])
         if r.get("CreatedAt"):
             r["CreatedAt"] = str(r["CreatedAt"])
     return jsonify(rows)
@@ -431,12 +431,10 @@ def get_payroll():
 def get_salary_details(emp_id):
     """
     Lấy chi tiết lương + cổ tức của 1 nhân viên.
-    Gộp dữ liệu từ MySQL (salaries) + SQL Server (Dividends).
     Query params: ?month=YYYY-MM
     """
     month = request.args.get("month")
 
-    # --- Lương từ MySQL ---
     my = get_mysql_connection()
     my_cur = my.cursor(dictionary=True)
 
@@ -448,7 +446,7 @@ def get_salary_details(emp_id):
             LEFT JOIN departments_payroll dp ON ep.DepartmentID = dp.DepartmentID
             LEFT JOIN positions_payroll   pp ON ep.PositionID   = pp.PositionID
             WHERE s.EmployeeID = %s
-              AND DATE_FORMAT(s.SalaryMonth, '%%Y-%%m') = %s
+              AND DATE_FORMAT(s.SalaryMonth, '%Y-%m') = %s
             ORDER BY s.SalaryMonth DESC
             LIMIT 1
         """, (emp_id, month))
@@ -468,13 +466,12 @@ def get_salary_details(emp_id):
     if not salary:
         return jsonify({"msg": "Không tìm thấy dữ liệu lương"}), 404
 
-    # Chuyển date → string
-    if salary.get("SalaryMonth"):
-        salary["SalaryMonth"] = str(salary["SalaryMonth"])
+    salary["SalaryMonthStr"] = str(salary["SalaryMonth"])[:7] if salary.get("SalaryMonth") else ""
+    salary["SalaryMonth"]    = str(salary["SalaryMonth"]) if salary.get("SalaryMonth") else ""
     if salary.get("CreatedAt"):
         salary["CreatedAt"] = str(salary["CreatedAt"])
 
-    # --- Cổ tức từ SQL Server ---
+    # Cổ tức từ SQL Server
     sql = get_sqlserver_connection()
     cur = sql.cursor()
     cur.execute("""
@@ -491,7 +488,6 @@ def get_salary_details(emp_id):
         }
         for r in cur.fetchall()
     ]
-
     total_dividend = sum(d["DividendAmount"] for d in dividends)
 
     return jsonify({
@@ -522,8 +518,8 @@ def get_salary_history(emp_id):
     """, (emp_id,))
     rows = my_cur.fetchall()
     for r in rows:
-        if r.get("SalaryMonth"):
-            r["SalaryMonth"] = str(r["SalaryMonth"])
+        r["SalaryMonthStr"] = str(r["SalaryMonth"])[:7] if r.get("SalaryMonth") else ""
+        r["SalaryMonth"]    = str(r["SalaryMonth"]) if r.get("SalaryMonth") else ""
         if r.get("CreatedAt"):
             r["CreatedAt"] = str(r["CreatedAt"])
     return jsonify(rows)
@@ -598,7 +594,7 @@ def get_attendance():
         query += " AND a.EmployeeID = %s"
         params.append(int(emp_id))
     if month:
-        query += " AND DATE_FORMAT(a.AttendanceMonth, '%%Y-%%m') = %s"
+        query += " AND DATE_FORMAT(a.AttendanceMonth, '%Y-%m') = %s"
         params.append(month)
 
     query += " ORDER BY a.AttendanceMonth DESC, a.EmployeeID"
@@ -662,7 +658,7 @@ def get_dashboard():
     """)
     payroll_summary = my_cur.fetchone()
     if payroll_summary and payroll_summary.get("SalaryMonth"):
-        payroll_summary["SalaryMonth"] = str(payroll_summary["SalaryMonth"])
+        payroll_summary["SalaryMonth"] = str(payroll_summary["SalaryMonth"])[:7]
 
     return jsonify({
         "status": "success",

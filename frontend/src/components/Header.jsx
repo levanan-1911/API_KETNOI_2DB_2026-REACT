@@ -1,5 +1,6 @@
-import { Bell, Search } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Bell, Search, LogOut } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const pageTitles = {
   "/":                    { title: "Tổng quan",             sub: "Chào mừng trở lại!" },
@@ -19,6 +20,18 @@ const pageTitles = {
 
 export default function Header({ collapsed }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  // Avatar initials từ tên thật
+  const initials = user?.fullName
+    ? user.fullName.split(" ").slice(-2).map((w) => w[0]).join("").toUpperCase()
+    : "AD";
 
   // Tìm title phù hợp nhất
   const matchedKey = Object.keys(pageTitles)
@@ -108,13 +121,30 @@ export default function Header({ collapsed }) {
             display: "inline-block",
           }}
         />
-        Admin
+        {user?.role || "Admin"}
       </div>
 
       {/* Avatar */}
-      <div className="header-avatar" title="Tài khoản">
-        AD
+      <div className="header-avatar" title={user?.fullName || "Tài khoản"}>
+        {initials}
       </div>
+
+      {/* Logout */}
+      <button
+        onClick={handleLogout}
+        title="Đăng xuất"
+        style={{
+          width: 36, height: 36, borderRadius: "50%",
+          border: "1px solid #e8ecf0", background: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", color: "#ef4444", flexShrink: 0,
+          transition: "all 0.15s",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "#fff"; }}
+      >
+        <LogOut size={16} />
+      </button>
     </header>
   );
 }

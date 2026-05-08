@@ -71,10 +71,12 @@ export default function SalaryDetail() {
   const chartData = [...history]
     .reverse()
     .map((h) => ({
-      month:   h.SalaryMonthStr || `${h.SalaryYear}-${String(h.SalaryMonth).padStart(2,'0')}`,
-      base:    Number(h.BaseSalary  || 0) / 1e6,
-      bonus:   Number(h.Bonus       || 0) / 1e6,
-      net:     Number(h.NetSalary   || 0) / 1e6,
+      month: h.SalaryMonthStr
+        ? new Date(h.SalaryMonthStr + "-01").toLocaleDateString("vi-VN", { month: "short", year: "2-digit" })
+        : "—",
+      base:  Number(h.BaseSalary || 0) / 1e6,
+      bonus: Number(h.Bonus      || 0) / 1e6,
+      net:   Number(h.NetSalary  || 0) / 1e6,
     }));
 
   if (error) return (

@@ -13,6 +13,10 @@ import DividendReport  from "./pages/DividendReport";
 import Profile         from "./pages/Profile";
 import Reports         from "./pages/Reports";
 import Alerts          from "./pages/Alerts";
+import PayrollCalc     from "./pages/PayrollCalc";
+import Departments    from "./pages/Departments";
+import Attendance     from "./pages/Attendance";
+import Admin          from "./pages/Admin";
 
 const Placeholder = ({ title }) => (
   <div style={{ display: "flex", flexDirection: "column",
@@ -44,13 +48,13 @@ function App() {
                   <Route path="/payroll"                 element={<Payroll />} />
                   <Route path="/salary/:id/details"      element={<SalaryDetail />} />
                   <Route path="/reports/dividend"        element={<DividendReport />} />
-                  <Route path="/profile"                 element={<Profile />} />
-                  <Route path="/reports"                 element={<Reports />} />
-                  <Route path="/alerts"                  element={<Alerts />} />
-                  <Route path="/payroll-calc"            element={<Placeholder title="Tính lương" />} />
-                  <Route path="/departments"             element={<Placeholder title="Phòng ban & Chức vụ" />} />
-                  <Route path="/attendance"              element={<Placeholder title="Chấm công & Nghỉ phép" />} />
-                  <Route path="/admin"                   element={<Placeholder title="Quản trị hệ thống" />} />
+                  <Route path="/profile"                 element={<Profile     title="Trang cá nhân"/>} />
+                  <Route path="/reports"                 element={<Reports     title="báo cáo"/>} />
+                  <Route path="/alerts"                  element={<Alerts      title="thông báo" />} />
+                  <Route path="/payroll-calc"            element={<PayrollCalc />} />
+                  <Route path="/departments"             element={<Departments />} />
+                  <Route path="/attendance"              element={<Attendance />} />
+                  <Route path="/admin"                   element={<Admin />} />
                   <Route path="*"                        element={<Navigate to="/" replace />} />
                 </Routes>
               </Layout>

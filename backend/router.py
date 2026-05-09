@@ -379,6 +379,22 @@ def add_employee():
         if not re.match(r'^\d{9,15}$', phone.strip()):
             return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
 
+    # Validate ngày sinh: không được trong tương lai, phải >= 18 tuổi
+    if dob:
+        from datetime import date
+        try:
+            dob_date = date.fromisoformat(str(dob)[:10])
+            today = date.today()
+            if dob_date >= today:
+                return jsonify({"status": "error", "msg": "Ngày sinh không hợp lệ (không được là ngày hiện tại hoặc tương lai)"}), 400
+            age = (today - dob_date).days // 365
+            if age < 18:
+                return jsonify({"status": "error", "msg": "Nhân viên phải đủ 18 tuổi"}), 400
+            if age > 100:
+                return jsonify({"status": "error", "msg": "Ngày sinh không hợp lệ"}), 400
+        except ValueError:
+            return jsonify({"status": "error", "msg": "Định dạng ngày sinh không hợp lệ"}), 400
+
     sql = get_sqlserver_connection()
     cur = sql.cursor()
 
@@ -455,6 +471,22 @@ def update_employee(emp_id):
         import re
         if not re.match(r'^\d{9,15}$', phone.strip()):
             return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
+
+    # Validate ngày sinh: không được trong tương lai, phải >= 18 tuổi
+    if dob:
+        from datetime import date
+        try:
+            dob_date = date.fromisoformat(str(dob)[:10])
+            today = date.today()
+            if dob_date >= today:
+                return jsonify({"status": "error", "msg": "Ngày sinh không hợp lệ (không được là ngày hiện tại hoặc tương lai)"}), 400
+            age = (today - dob_date).days // 365
+            if age < 18:
+                return jsonify({"status": "error", "msg": "Nhân viên phải đủ 18 tuổi"}), 400
+            if age > 100:
+                return jsonify({"status": "error", "msg": "Ngày sinh không hợp lệ"}), 400
+        except ValueError:
+            return jsonify({"status": "error", "msg": "Định dạng ngày sinh không hợp lệ"}), 400
 
     sql = get_sqlserver_connection()
     my  = get_mysql_connection()

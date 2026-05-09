@@ -11,7 +11,8 @@ const FIELD_CONFIG = [
   { id: "FullName",    label: "Họ và tên",       type: "text",   icon: User,      required: true,  col: 6 },
   { id: "Gender",      label: "Giới tính",        type: "select", icon: User,      required: false, col: 6,
     options: [{ value: "", label: "-- Chọn --" }, { value: "Male", label: "Nam" }, { value: "Female", label: "Nữ" }, { value: "Other", label: "Khác" }] },
-  { id: "DateOfBirth", label: "Ngày sinh",        type: "date",   icon: Calendar,  required: false, col: 6 },
+  { id: "DateOfBirth", label: "Ngày sinh",        type: "date",   icon: Calendar,  required: false, col: 6,
+    max: new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0, 10) },
   { id: "HireDate",    label: "Ngày vào làm",     type: "date",   icon: Calendar,  required: false, col: 6 },
   { id: "Email",       label: "Email",            type: "email",  icon: Mail,      required: true,  col: 6 },
   { id: "PhoneNumber", label: "Số điện thoại",    type: "tel",    icon: Phone,     required: false, col: 6,
@@ -135,6 +136,7 @@ export default function EmployeeAdd() {
                       required={f.required}
                       pattern={f.pattern || undefined}
                       title={f.title || undefined}
+                      max={f.max || undefined}
                       placeholder={f.type === "text" ? `Nhập ${f.label.toLowerCase()}...` : undefined} />
                   )}
                 </div>

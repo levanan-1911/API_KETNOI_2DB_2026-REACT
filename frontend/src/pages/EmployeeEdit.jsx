@@ -37,7 +37,10 @@ export default function EmployeeEdit() {
     Promise.all([
       fetch(`${API}/api/departments`).then(r => r.json()),
       fetch(`${API}/api/positions`).then(r => r.json()),
-      fetch(`${API}/api/employees/${id}`).then(r => r.json()),
+      fetch(`${API}/api/employees/${id}`).then(r => {
+        if (!r.ok) throw new Error("Không tìm thấy nhân viên");
+        return r.json();
+      }),
     ]).then(([depts, pos, emp]) => {
       setDepartments(Array.isArray(depts) ? depts : []);
       setPositions(Array.isArray(pos) ? pos : []);
@@ -52,6 +55,8 @@ export default function EmployeeEdit() {
         PositionID:   emp.PositionID   || "",
         Status:       emp.Status       || "Active",
       });
+    }).catch((e) => {
+      setError(e.message || "Không thể tải dữ liệu nhân viên");
     }).finally(() => setLoading(false));
   }, [id]);
 
@@ -69,12 +74,12 @@ export default function EmployeeEdit() {
     e.preventDefault();
     setSaving(true); setError(""); setSuccess(false);
     try {
-      const r = await fetch(`${API}/api/employees/${id}`, {
+      const res = await fetch(`${API}/api/employees/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
-      }).then(r => r.json());
-
+      });
+      const r = await res.json();
       if (r.status === "success") {
         setSuccess(true);
         setTimeout(() => nav("/employees"), 1200);
@@ -223,10 +228,10 @@ export default function EmployeeEdit() {
             <div className="row g-3">
               <div className="col-12 col-md-4">
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>
-                  Phòng ban
+                  Phòng ban <span style={{ color: "#dc2626" }}>*</span>
                 </label>
                 <select id="DepartmentID" className="form-select" style={{ fontSize: 13 }}
-                  value={form.DepartmentID} onChange={handleChange}>
+                  value={form.DepartmentID} onChange={handleChange} required>
                   <option value="">-- Chọn phòng ban --</option>
                   {departments.map(d => (
                     <option key={d.DepartmentID} value={d.DepartmentID}>{d.DepartmentName}</option>
@@ -235,10 +240,10 @@ export default function EmployeeEdit() {
               </div>
               <div className="col-12 col-md-4">
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>
-                  Chức vụ
+                  Chức vụ <span style={{ color: "#dc2626" }}>*</span>
                 </label>
                 <select id="PositionID" className="form-select" style={{ fontSize: 13 }}
-                  value={form.PositionID} onChange={handleChange}>
+                  value={form.PositionID} onChange={handleChange} required>
                   <option value="">-- Chọn chức vụ --</option>
                   {positions.map(p => (
                     <option key={p.PositionID} value={p.PositionID}>{p.PositionName}</option>

@@ -35,10 +35,18 @@ export default function EmployeeAdd() {
   const [positions,   setPositions]   = useState([]);
   const [saving,      setSaving]      = useState(false);
   const [error,       setError]       = useState("");
+  const [loadError,   setLoadError]   = useState("");
 
   useEffect(() => {
-    fetch(`${API}/api/departments`).then(r => r.json()).then(setDepartments);
-    fetch(`${API}/api/positions`).then(r => r.json()).then(setPositions);
+    Promise.all([
+      fetch(`${API}/api/departments`).then(r => r.json()),
+      fetch(`${API}/api/positions`).then(r => r.json()),
+    ]).then(([depts, pos]) => {
+      setDepartments(Array.isArray(depts) ? depts : []);
+      setPositions(Array.isArray(pos) ? pos : []);
+    }).catch(() => {
+      setLoadError("Không thể tải danh sách phòng ban / chức vụ. Vui lòng tải lại trang.");
+    });
   }, []);
 
   const handleChange = (e) => {
@@ -56,12 +64,12 @@ export default function EmployeeAdd() {
     setSaving(true);
     setError("");
     try {
-      const r = await fetch(`${API}/api/employees`, {
+      const res = await fetch(`${API}/api/employees`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
-      }).then(r => r.json());
-
+      });
+      const r = await res.json();
       if (r.status === "success") {
         nav("/employees");
       } else {
@@ -113,6 +121,15 @@ export default function EmployeeAdd() {
             </span>
           </div>
           <div style={{ padding: "20px" }}>
+            {loadError && (
+              <div style={{
+                background: "#fffbeb", border: "1px solid #fde68a", borderRadius: 8,
+                padding: "10px 14px", marginBottom: 16, color: "#d97706",
+                fontSize: 13, display: "flex", alignItems: "center", gap: 8,
+              }}>
+                <AlertCircle size={15} /> {loadError}
+              </div>
+            )}
             {error && (
               <div style={{
                 background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8,

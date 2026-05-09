@@ -480,6 +480,12 @@ def update_employee(emp_id):
     pos_id     = data.get("PositionID") or None
     status     = data.get("Status", "Active")
 
+    if not full_name or not email:
+        return jsonify({"status": "error", "msg": "FullName và Email là bắt buộc"}), 400
+
+    if not dept_id or not pos_id:
+        return jsonify({"status": "error", "msg": "Phòng ban và Chức vụ là bắt buộc"}), 400
+
     # Validate số điện thoại: chỉ chứa chữ số, không âm, không ký tự đặc biệt
     if phone:
         if not re.match(r'^\d{9,15}$', phone.strip()):
@@ -513,6 +519,16 @@ def update_employee(emp_id):
 
     sql = get_sqlserver_connection()
     my  = get_mysql_connection()
+
+    # Kiểm tra email trùng với nhân viên khác
+    sql_check = sql.cursor()
+    sql_check.execute(
+        "SELECT COUNT(*) FROM Employees WHERE Email = ? AND EmployeeID != ?",
+        (email, emp_id)
+    )
+    if sql_check.fetchone()[0] > 0:
+        return jsonify({"status": "error", "msg": "Email đã được sử dụng bởi nhân viên khác"}), 409
+
     sql.autocommit = False
     my.start_transaction()
 

@@ -1,5 +1,7 @@
 from flask import Blueprint, jsonify, request
 from config import get_sqlserver_connection, get_mysql_connection
+import re
+from datetime import date
 
 router = Blueprint("router", __name__)
 
@@ -373,15 +375,16 @@ def add_employee():
     if not full_name or not email:
         return jsonify({"status": "error", "msg": "FullName và Email là bắt buộc"}), 400
 
-    # Validate số điện thoại: chỉ chứa chữ số, không âm, không ký tự đặc biệt
+    if not dept_id or not pos_id:
+        return jsonify({"status": "error", "msg": "Phòng ban và Chức vụ là bắt buộc"}), 400
+
+    # Validate số điện thoại
     if phone:
-        import re
         if not re.match(r'^\d{9,15}$', phone.strip()):
             return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
 
-    # Validate ngày sinh: không được trong tương lai, phải >= 18 tuổi
+    # Validate ngày sinh: phải >= 18 tuổi, không tương lai
     if dob:
-        from datetime import date
         try:
             dob_date = date.fromisoformat(str(dob)[:10])
             today = date.today()
@@ -394,6 +397,17 @@ def add_employee():
                 return jsonify({"status": "error", "msg": "Ngày sinh không hợp lệ"}), 400
         except ValueError:
             return jsonify({"status": "error", "msg": "Định dạng ngày sinh không hợp lệ"}), 400
+
+    # Validate ngày vào làm: không được trong tương lai
+    if hire_date:
+        try:
+            hire = date.fromisoformat(str(hire_date)[:10])
+            if hire > date.today():
+                return jsonify({"status": "error", "msg": "Ngày vào làm không được trong tương lai"}), 400
+            if dob and hire <= date.fromisoformat(str(dob)[:10]):
+                return jsonify({"status": "error", "msg": "Ngày vào làm phải sau ngày sinh"}), 400
+        except ValueError:
+            return jsonify({"status": "error", "msg": "Định dạng ngày vào làm không hợp lệ"}), 400
 
     sql = get_sqlserver_connection()
     cur = sql.cursor()
@@ -468,13 +482,11 @@ def update_employee(emp_id):
 
     # Validate số điện thoại: chỉ chứa chữ số, không âm, không ký tự đặc biệt
     if phone:
-        import re
         if not re.match(r'^\d{9,15}$', phone.strip()):
             return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
 
     # Validate ngày sinh: không được trong tương lai, phải >= 18 tuổi
     if dob:
-        from datetime import date
         try:
             dob_date = date.fromisoformat(str(dob)[:10])
             today = date.today()
@@ -487,6 +499,17 @@ def update_employee(emp_id):
                 return jsonify({"status": "error", "msg": "Ngày sinh không hợp lệ"}), 400
         except ValueError:
             return jsonify({"status": "error", "msg": "Định dạng ngày sinh không hợp lệ"}), 400
+
+    # Validate ngày vào làm: không được trong tương lai
+    if hire_date:
+        try:
+            hire = date.fromisoformat(str(hire_date)[:10])
+            if hire > date.today():
+                return jsonify({"status": "error", "msg": "Ngày vào làm không được trong tương lai"}), 400
+            if dob and hire <= date.fromisoformat(str(dob)[:10]):
+                return jsonify({"status": "error", "msg": "Ngày vào làm phải sau ngày sinh"}), 400
+        except ValueError:
+            return jsonify({"status": "error", "msg": "Định dạng ngày vào làm không hợp lệ"}), 400
 
     sql = get_sqlserver_connection()
     my  = get_mysql_connection()

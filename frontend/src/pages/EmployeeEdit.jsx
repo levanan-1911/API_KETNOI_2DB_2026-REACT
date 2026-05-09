@@ -7,6 +7,11 @@ import {
 
 const API = "http://localhost:5000";
 
+// Tính 1 lần, không tính lại mỗi render
+const today = new Date().toISOString().slice(0, 10);
+const maxDOB = new Date(new Date().setFullYear(new Date().getFullYear() - 18))
+  .toISOString().slice(0, 10);
+
 const STATUS_MAP = {
   Active:   { label: "Đang làm",  color: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
   Inactive: { label: "Đã nghỉ",   color: "#dc2626", bg: "#fef2f2", border: "#fecaca" },
@@ -165,8 +170,9 @@ export default function EmployeeEdit() {
                 { id: "Gender",      label: "Giới tính",    type: "select",col: 6,
                   options: [{ value: "", label: "-- Chọn --" }, { value: "Male", label: "Nam" }, { value: "Female", label: "Nữ" }, { value: "Other", label: "Khác" }] },
                 { id: "DateOfBirth", label: "Ngày sinh",    type: "date",  col: 6,
-                  max: new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0, 10) },
-                { id: "HireDate",    label: "Ngày vào làm", type: "date",  col: 6 },
+                  max: maxDOB },
+                { id: "HireDate",    label: "Ngày vào làm", type: "date",  col: 6,
+                  max: today },
                 { id: "Email",       label: "Email",        type: "email", col: 6, required: true },
                 { id: "PhoneNumber", label: "Số điện thoại",type: "tel",   col: 6,
                   pattern: "\\d{9,15}", title: "Số điện thoại chỉ gồm 9-15 chữ số" },

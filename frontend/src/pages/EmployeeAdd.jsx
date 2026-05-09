@@ -7,13 +7,19 @@ import {
 
 const API = "http://localhost:5000";
 
+// Tính 1 lần, không tính lại mỗi render
+const today = new Date().toISOString().slice(0, 10);
+const maxDOB = new Date(new Date().setFullYear(new Date().getFullYear() - 18))
+  .toISOString().slice(0, 10);
+
 const FIELD_CONFIG = [
   { id: "FullName",    label: "Họ và tên",       type: "text",   icon: User,      required: true,  col: 6 },
   { id: "Gender",      label: "Giới tính",        type: "select", icon: User,      required: false, col: 6,
     options: [{ value: "", label: "-- Chọn --" }, { value: "Male", label: "Nam" }, { value: "Female", label: "Nữ" }, { value: "Other", label: "Khác" }] },
   { id: "DateOfBirth", label: "Ngày sinh",        type: "date",   icon: Calendar,  required: false, col: 6,
-    max: new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().slice(0, 10) },
-  { id: "HireDate",    label: "Ngày vào làm",     type: "date",   icon: Calendar,  required: false, col: 6 },
+    max: maxDOB },
+  { id: "HireDate",    label: "Ngày vào làm",     type: "date",   icon: Calendar,  required: false, col: 6,
+    max: today },
   { id: "Email",       label: "Email",            type: "email",  icon: Mail,      required: true,  col: 6 },
   { id: "PhoneNumber", label: "Số điện thoại",    type: "tel",    icon: Phone,     required: false, col: 6,
     pattern: "\\d{9,15}", title: "Số điện thoại chỉ gồm 9-15 chữ số" },
@@ -195,7 +201,6 @@ export default function EmployeeAdd() {
                   value={form.Status} onChange={handleChange}>
                   <option value="Active">Đang làm việc</option>
                   <option value="OnLeave">Nghỉ phép</option>
-                  <option value="Inactive">Đã nghỉ việc</option>
                 </select>
               </div>
             </div>

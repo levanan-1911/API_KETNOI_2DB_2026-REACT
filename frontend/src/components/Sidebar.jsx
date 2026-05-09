@@ -18,8 +18,8 @@ const ALL_MENU = [
   { id: "reports",       label: "Báo cáo",               icon: BarChart3,       path: "/reports",        roles: ["Admin","HR_Manager","Payroll_Manager"] },
   { id: "alerts",        label: "Cảnh báo",              icon: Bell,            path: "/alerts",         roles: ["Admin","HR_Manager","Payroll_Manager"] },
   // Mục dành riêng cho Employee
-  { id: "my-salary",     label: "Lương của tôi",         icon: Wallet,          path: "/my-salary",      roles: ["Employee"] },
-  { id: "my-attendance", label: "Chấm công của tôi",     icon: ClipboardList,   path: "/my-attendance",  roles: ["Employee"] },
+  { id: "my-salary",     label: "Lương của tôi",         icon: Wallet,          path: "/my-salary",      roles: ["Employee"], employeeOnly: true },
+  { id: "my-attendance", label: "Chấm công của tôi",     icon: ClipboardList,   path: "/my-attendance",  roles: ["Employee"], employeeOnly: true },
   // Tất cả role
   { id: "profile",       label: "Hồ sơ cá nhân",         icon: UserCircle,      path: "/profile",        roles: null },
   { id: "admin",         label: "Quản trị",              icon: Settings,        path: "/admin",          roles: ["Admin"] },
@@ -32,8 +32,12 @@ export default function Sidebar({ collapsed, onToggle }) {
   // Lọc menu theo role — chờ loading xong để tránh flash menu sai
   const menuItems = ALL_MENU.filter(item => {
     if (loading) return !item.roles; // khi đang load chỉ hiện mục không cần role
+
+    // 2 mục chỉ dành riêng cho Employee — Admin/HR/Payroll không cần xem
+    if (item.employeeOnly && user?.role !== "Employee") return false;
+
     if (!item.roles) return true;           // null = tất cả role
-    if (user?.role === "Admin") return true; // Admin thấy tất cả
+    if (user?.role === "Admin") return true; // Admin thấy tất cả (trừ employeeOnly)
     return item.roles.includes(user?.role);
   });
 

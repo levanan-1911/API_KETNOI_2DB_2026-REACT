@@ -29,10 +29,17 @@ function Forbidden({ requiredRoles }) {
 }
 
 export default function RoleRoute({ children, roles = [], permission = null }) {
-  const { user, hasRole, hasPermission } = useAuth();
+  const { user, loading, hasRole, hasPermission } = useAuth();
+
+  // Chờ AuthContext xác minh token xong mới kiểm tra quyền
+  // Tránh flash "Forbidden" khi reload trang
+  if (loading) return null;
+
+  // Chưa đăng nhập (ProtectedRoute đã xử lý redirect, nhưng phòng thủ thêm)
+  if (!user) return <Forbidden requiredRoles={roles} />;
 
   // Admin luôn có toàn quyền
-  if (user?.role === "Admin") return children;
+  if (user.role === "Admin") return children;
 
   // Kiểm tra theo permission cụ thể
   if (permission && !hasPermission(permission)) {

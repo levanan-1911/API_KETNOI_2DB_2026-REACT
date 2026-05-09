@@ -8,10 +8,10 @@ def get_sqlserver_connection():
     try:
         conn = pyodbc.connect(
             "DRIVER={ODBC Driver 17 for SQL Server};"
-            "SERVER=(localdb)\MSSQLLocalDB;"
+            "SERVER=localhost;"
             "DATABASE=HUMAN_2025;"
-            "UID=sa;"
-            "Trusted_Connection=yes;",
+            "Trusted_Connection=yes;"
+            "TrustServerCertificate=yes;",
             timeout=5
         )
         return conn
@@ -26,10 +26,10 @@ def get_authdb_connection():
     try:
         conn = pyodbc.connect(
             "DRIVER={ODBC Driver 17 for SQL Server};"
-            "SERVER=(localdb)\MSSQLLocalDB;"
+            "SERVER=localhost;"
             "DATABASE=AuthDB;"
-            "UID=sa;"
-            "Trusted_Connection=yes;",
+            "Trusted_Connection=yes;"
+            "TrustServerCertificate=yes;",
             timeout=5
         )
         return conn

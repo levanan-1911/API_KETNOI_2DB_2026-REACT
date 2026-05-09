@@ -165,6 +165,19 @@ def login():
     }
     token = create_token(user_obj)
 
+    # Tìm EmployeeID: ưu tiên cột EmployeeID trong Users, fallback tìm theo Email
+    employee_id = None
+    try:
+        from config import get_sqlserver_connection
+        sql_conn = get_sqlserver_connection()
+        sql_cur  = sql_conn.cursor()
+        sql_cur.execute("SELECT EmployeeID FROM Employees WHERE Email = ?", email)
+        emp_row = sql_cur.fetchone()
+        if emp_row:
+            employee_id = emp_row[0]
+    except Exception:
+        pass
+
     return jsonify({
         "status": "success",
         "msg":    "Đăng nhập thành công",
@@ -176,6 +189,7 @@ def login():
             "email":       email,
             "role":        role,
             "permissions": permissions,
+            "employeeId":  employee_id,
         }
     })
 
@@ -223,10 +237,44 @@ def me():
 
     user_id, uname, full_name, email, is_active, last_login = row
 
+    # Thử lấy Phone nếu cột tồn tại, không bắt buộc
+    phone = ""
+    try:
+        cur.execute("SELECT ISNULL(Phone, '') FROM Users WHERE UserID = ?", user_id)
+        phone_row = cur.fetchone()
+        if phone_row:
+            phone = phone_row[0]
+    except Exception:
+        pass  # Cột Phone chưa tồn tại → bỏ qua
+
     try:
         role, permissions = _get_user_role_and_permissions(conn, user_id)
     except Exception:
         role, permissions = u.get("role", "Employee"), u.get("permissions", [])
+
+    # Tìm EmployeeID: ưu tiên cột EmployeeID trong Users, fallback tìm theo Email
+    employee_id = None
+    try:
+        # Thử đọc cột EmployeeID trực tiếp (nếu đã ALTER TABLE thêm cột)
+        cur.execute("SELECT EmployeeID FROM Users WHERE UserID = ?", user_id)
+        eid_row = cur.fetchone()
+        if eid_row and eid_row[0]:
+            employee_id = eid_row[0]
+    except Exception:
+        pass
+
+    if not employee_id:
+        # Fallback: tìm theo email trong HUMAN_2025
+        try:
+            from config import get_sqlserver_connection
+            sql_conn = get_sqlserver_connection()
+            sql_cur  = sql_conn.cursor()
+            sql_cur.execute("SELECT EmployeeID FROM Employees WHERE Email = ?", email)
+            emp_row = sql_cur.fetchone()
+            if emp_row:
+                employee_id = emp_row[0]
+        except Exception:
+            pass
 
     return jsonify({
         "status": "success",
@@ -235,14 +283,14 @@ def me():
             "username":    uname,
             "fullName":    full_name,
             "email":       email,
+            "phone":       phone,
             "role":        role,
             "permissions": permissions,
             "isActive":    bool(is_active),
             "lastLogin":   str(last_login) if last_login else None,
+            "employeeId":  employee_id,   # None nếu tài khoản không liên kết nhân viên
         }
     })
-
-
 # ============================================================
 # GET /api/auth/permissions  – lấy danh sách quyền của user
 # ============================================================
@@ -277,3 +325,97 @@ def get_permissions():
         "permissions": u.get("permissions", []),
         "functions":   functions,
     })
+
+
+# ============================================================
+# PUT /api/auth/change-password
+# ============================================================
+@auth_bp.route("/api/auth/change-password", methods=["PUT"])
+@token_required
+def change_password():
+    """Đổi mật khẩu — yêu cầu nhập mật khẩu hiện tại để xác nhận."""
+    from werkzeug.security import generate_password_hash
+    data         = request.get_json(silent=True) or {}
+    current_pw   = data.get("currentPassword", "")
+    new_pw       = data.get("newPassword", "")
+
+    if not current_pw or not new_pw:
+        return jsonify({"status": "error", "msg": "Vui lòng nhập đầy đủ mật khẩu"}), 400
+    if len(new_pw) < 6:
+        return jsonify({"status": "error", "msg": "Mật khẩu mới phải ít nhất 6 ký tự"}), 400
+
+    user_id = request.current_user.get("sub")
+    try:
+        conn = get_authdb_connection()
+        cur  = conn.cursor()
+        cur.execute("SELECT PasswordHash FROM Users WHERE UserID = ?", user_id)
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"status": "error", "msg": "Không tìm thấy tài khoản"}), 404
+
+        if not check_password_hash(row[0], current_pw):
+            return jsonify({"status": "error", "msg": "Mật khẩu hiện tại không đúng"}), 401
+
+        new_hash = generate_password_hash(new_pw)
+        cur.execute(
+            "UPDATE Users SET PasswordHash = ?, UpdatedAt = GETDATE() WHERE UserID = ?",
+            new_hash, user_id
+        )
+        # Ghi audit log
+        cur.execute("""
+            INSERT INTO Audit_Log (UserID, Action, Resource, ResourceID, Details, IPAddress)
+            VALUES (?, 'CHANGE_PASSWORD', 'Auth', ?, 'Đổi mật khẩu thành công', ?)
+        """, user_id, str(user_id), request.remote_addr or "unknown")
+        conn.commit()
+    except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({"status": "success", "msg": "Đổi mật khẩu thành công"})
+
+
+# ============================================================
+# PUT /api/auth/profile  – cập nhật thông tin cá nhân
+# ============================================================
+@auth_bp.route("/api/auth/profile", methods=["PUT"])
+@token_required
+def update_profile():
+    """Cập nhật FullName, Email, Phone của user đang đăng nhập."""
+    data     = request.get_json(silent=True) or {}
+    fullname = data.get("FullName", "").strip()
+    email    = data.get("Email", "").strip()
+    phone    = data.get("Phone", "").strip()
+
+    if not fullname or not email:
+        return jsonify({"status": "error", "msg": "Họ tên và Email là bắt buộc"}), 400
+
+    user_id = request.current_user.get("sub")
+    try:
+        conn = get_authdb_connection()
+        cur  = conn.cursor()
+        # Kiểm tra email trùng với user khác
+        cur.execute(
+            "SELECT COUNT(*) FROM Users WHERE Email = ? AND UserID != ?",
+            email, user_id
+        )
+        if cur.fetchone()[0] > 0:
+            return jsonify({"status": "error", "msg": "Email đã được dùng bởi tài khoản khác"}), 409
+
+        cur.execute("""
+            UPDATE Users SET FullName = ?, Email = ?, UpdatedAt = GETDATE()
+            WHERE UserID = ?
+        """, fullname, email, user_id)
+
+        # Cập nhật Phone nếu cột tồn tại
+        if phone:
+            try:
+                cur.execute(
+                    "UPDATE Users SET Phone = ? WHERE UserID = ?",
+                    phone, user_id
+                )
+            except Exception:
+                pass  # Cột Phone chưa tồn tại → bỏ qua
+        conn.commit()
+    except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({"status": "success", "msg": "Cập nhật thông tin thành công"})

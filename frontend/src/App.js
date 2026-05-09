@@ -18,6 +18,8 @@ import PayrollCalc     from "./pages/PayrollCalc";
 import Departments     from "./pages/Departments";
 import Attendance      from "./pages/Attendance";
 import Admin           from "./pages/Admin";
+import MySalary        from "./pages/MySalary";
+import MyAttendance    from "./pages/MyAttendance";
 
 
 
@@ -25,11 +27,12 @@ import Admin           from "./pages/Admin";
    Admin          : toàn quyền (RoleRoute tự bypass)
    HR_Manager     : nhân viên, phòng ban, chấm công, báo cáo, cảnh báo
    Payroll_Manager: lương, tính lương, báo cáo
-   Employee       : chỉ dashboard + hồ sơ cá nhân
+   Employee       : dashboard, hồ sơ, lương của mình, chấm công của mình
    ─────────────────────────────────────────────────────── */
 const HR_ROLES      = ["Admin", "HR_Manager"];
 const PAYROLL_ROLES = ["Admin", "Payroll_Manager"];
 const MGMT_ROLES    = ["Admin", "HR_Manager", "Payroll_Manager"];
+const ALL_ROLES     = ["Admin", "HR_Manager", "Payroll_Manager", "Employee"];
 
 function App() {
   return (
@@ -46,7 +49,11 @@ function App() {
                 <Routes>
                   {/* Tất cả role */}
                   <Route path="/"               element={<Dashboard />} />
-                  <Route path="/profile"        element={<Profile title="Trang cá nhân" />} />
+                  <Route path="/profile"        element={<Profile />} />
+
+                  {/* Tất cả role — xem lương + chấm công của chính mình */}
+                  <Route path="/my-salary"      element={<RoleRoute roles={ALL_ROLES}><MySalary /></RoleRoute>} />
+                  <Route path="/my-attendance"  element={<RoleRoute roles={ALL_ROLES}><MyAttendance /></RoleRoute>} />
 
                   {/* HR_Manager + Admin */}
                   <Route path="/employees"      element={<RoleRoute roles={HR_ROLES}><Employees /></RoleRoute>} />

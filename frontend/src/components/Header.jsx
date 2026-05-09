@@ -16,6 +16,8 @@ const pageTitles = {
   "/alerts":              { title: "Cảnh báo",              sub: "Thông báo hệ thống" },
   "/profile":             { title: "Hồ sơ cá nhân",         sub: "Thông tin tài khoản" },
   "/admin":               { title: "Quản trị hệ thống",     sub: "Cấu hình và phân quyền" },
+  "/my-salary":           { title: "Lương của tôi",          sub: "Thông tin lương cá nhân" },
+  "/my-attendance":       { title: "Chấm công của tôi",      sub: "Ngày công và nghỉ phép" },
 };
 
 export default function Header({ collapsed }) {

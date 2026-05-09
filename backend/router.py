@@ -373,6 +373,12 @@ def add_employee():
     if not full_name or not email:
         return jsonify({"status": "error", "msg": "FullName và Email là bắt buộc"}), 400
 
+    # Validate số điện thoại: chỉ chứa chữ số, không âm, không ký tự đặc biệt
+    if phone:
+        import re
+        if not re.match(r'^\d{9,15}$', phone.strip()):
+            return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
+
     sql = get_sqlserver_connection()
     cur = sql.cursor()
 
@@ -443,6 +449,12 @@ def update_employee(emp_id):
     dept_id    = data.get("DepartmentID") or None
     pos_id     = data.get("PositionID") or None
     status     = data.get("Status", "Active")
+
+    # Validate số điện thoại: chỉ chứa chữ số, không âm, không ký tự đặc biệt
+    if phone:
+        import re
+        if not re.match(r'^\d{9,15}$', phone.strip()):
+            return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
 
     sql = get_sqlserver_connection()
     my  = get_mysql_connection()

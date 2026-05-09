@@ -14,7 +14,8 @@ const FIELD_CONFIG = [
   { id: "DateOfBirth", label: "Ngày sinh",        type: "date",   icon: Calendar,  required: false, col: 6 },
   { id: "HireDate",    label: "Ngày vào làm",     type: "date",   icon: Calendar,  required: false, col: 6 },
   { id: "Email",       label: "Email",            type: "email",  icon: Mail,      required: true,  col: 6 },
-  { id: "PhoneNumber", label: "Số điện thoại",    type: "tel",    icon: Phone,     required: false, col: 6 },
+  { id: "PhoneNumber", label: "Số điện thoại",    type: "tel",    icon: Phone,     required: false, col: 6,
+    pattern: "\\d{9,15}", title: "Số điện thoại chỉ gồm 9-15 chữ số" },
 ];
 
 export default function EmployeeAdd() {
@@ -35,7 +36,12 @@ export default function EmployeeAdd() {
 
   const handleChange = (e) => {
     setError("");
-    setForm({ ...form, [e.target.id]: e.target.value });
+    let value = e.target.value;
+    // Số điện thoại: chỉ cho phép chữ số
+    if (e.target.id === "PhoneNumber") {
+      value = value.replace(/[^0-9]/g, "");
+    }
+    setForm({ ...form, [e.target.id]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -127,6 +133,8 @@ export default function EmployeeAdd() {
                       style={{ fontSize: 13 }}
                       value={form[f.id]} onChange={handleChange}
                       required={f.required}
+                      pattern={f.pattern || undefined}
+                      title={f.title || undefined}
                       placeholder={f.type === "text" ? `Nhập ${f.label.toLowerCase()}...` : undefined} />
                   )}
                 </div>

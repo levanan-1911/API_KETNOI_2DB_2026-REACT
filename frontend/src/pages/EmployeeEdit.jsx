@@ -52,7 +52,12 @@ export default function EmployeeEdit() {
 
   const handleChange = (e) => {
     setError(""); setSuccess(false);
-    setForm({ ...form, [e.target.id]: e.target.value });
+    let value = e.target.value;
+    // Số điện thoại: chỉ cho phép chữ số
+    if (e.target.id === "PhoneNumber") {
+      value = value.replace(/[^0-9]/g, "");
+    }
+    setForm({ ...form, [e.target.id]: value });
   };
 
   const handleSubmit = async (e) => {
@@ -162,7 +167,8 @@ export default function EmployeeEdit() {
                 { id: "DateOfBirth", label: "Ngày sinh",    type: "date",  col: 6 },
                 { id: "HireDate",    label: "Ngày vào làm", type: "date",  col: 6 },
                 { id: "Email",       label: "Email",        type: "email", col: 6, required: true },
-                { id: "PhoneNumber", label: "Số điện thoại",type: "tel",   col: 6 },
+                { id: "PhoneNumber", label: "Số điện thoại",type: "tel",   col: 6,
+                  pattern: "\\d{9,15}", title: "Số điện thoại chỉ gồm 9-15 chữ số" },
               ].map(f => (
                 <div key={f.id} className={`col-12 col-md-${f.col}`}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>
@@ -179,7 +185,9 @@ export default function EmployeeEdit() {
                     <input id={f.id} type={f.type} className="form-control"
                       style={{ fontSize: 13 }}
                       value={form[f.id]} onChange={handleChange}
-                      required={f.required} />
+                      required={f.required}
+                      pattern={f.pattern || undefined}
+                      title={f.title || undefined} />
                   )}
                 </div>
               ))}

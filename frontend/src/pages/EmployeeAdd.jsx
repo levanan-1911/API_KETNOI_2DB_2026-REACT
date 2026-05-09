@@ -22,7 +22,7 @@ const FIELD_CONFIG = [
     max: today },
   { id: "Email",       label: "Email",            type: "email",  icon: Mail,      required: true,  col: 6 },
   { id: "PhoneNumber", label: "Số điện thoại",    type: "tel",    icon: Phone,     required: false, col: 6,
-    pattern: "\\d{9,15}", title: "Số điện thoại chỉ gồm 9-15 chữ số" },
+    pattern: "0\\d{8,14}", title: "Số điện thoại phải bắt đầu bằng số 0 và có 9-15 chữ số" },
 ];
 
 export default function EmployeeAdd() {

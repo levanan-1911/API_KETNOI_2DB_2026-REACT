@@ -380,8 +380,8 @@ def add_employee():
 
     # Validate số điện thoại
     if phone:
-        if not re.match(r'^\d{9,15}$', phone.strip()):
-            return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
+        if not re.match(r'^0\d{8,14}$', phone.strip()):
+            return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (phải bắt đầu bằng số 0 và có 9-15 chữ số)"}), 400
 
     # Validate ngày sinh: phải >= 18 tuổi, không tương lai
     if dob:
@@ -488,8 +488,8 @@ def update_employee(emp_id):
 
     # Validate số điện thoại: chỉ chứa chữ số, không âm, không ký tự đặc biệt
     if phone:
-        if not re.match(r'^\d{9,15}$', phone.strip()):
-            return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (chỉ gồm 9-15 chữ số)"}), 400
+        if not re.match(r'^0\d{8,14}$', phone.strip()):
+            return jsonify({"status": "error", "msg": "Số điện thoại không hợp lệ (phải bắt đầu bằng số 0 và có 9-15 chữ số)"}), 400
 
     # Validate ngày sinh: không được trong tương lai, phải >= 18 tuổi
     if dob:

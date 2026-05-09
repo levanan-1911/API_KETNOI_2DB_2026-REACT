@@ -180,7 +180,7 @@ export default function EmployeeEdit() {
                   max: today },
                 { id: "Email",       label: "Email",        type: "email", col: 6, required: true },
                 { id: "PhoneNumber", label: "Số điện thoại",type: "tel",   col: 6,
-                  pattern: "\\d{9,15}", title: "Số điện thoại chỉ gồm 9-15 chữ số" },
+                  pattern: "0\\d{8,14}", title: "Số điện thoại phải bắt đầu bằng số 0 và có 9-15 chữ số" },
               ].map(f => (
                 <div key={f.id} className={`col-12 col-md-${f.col}`}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 5 }}>

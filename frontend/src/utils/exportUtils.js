@@ -1,10 +1,11 @@
 /**
  * exportUtils.js
  * Tiện ích xuất Excel (.xlsx) và PDF cho bảng lương, chấm công, nhân sự.
+ * PDF dùng html2canvas để giữ nguyên font tiếng Việt.
  */
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 
 /* ── Định dạng số tiền VNĐ ── */
 const fmtVND = (n) =>
@@ -115,174 +116,166 @@ export function exportEmployeesExcel(rows) {
 }
 
 /* ══════════════════════════════════════════════════════
-   PDF EXPORT
+   PDF EXPORT — dùng html2canvas để giữ font tiếng Việt
    ══════════════════════════════════════════════════════ */
 
-/** Tạo header chung cho PDF */
-function pdfHeader(doc, title, subtitle) {
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.text(title, 14, 18);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100);
-  doc.text(subtitle, 14, 25);
-  doc.text(`Xuất lúc: ${new Date().toLocaleString("vi-VN")}`, 14, 31);
-  doc.setTextColor(0);
+/**
+ * Tạo HTML table string từ headers + rows
+ */
+function buildHtmlTable(title, subtitle, headers, rows, footerRow = null) {
+  const thStyle = `
+    background:#2563eb; color:#fff; padding:8px 10px;
+    font-size:12px; font-weight:700; text-align:left;
+    border:1px solid #1d4ed8;
+  `;
+  const tdStyle = `
+    padding:7px 10px; font-size:11px; color:#1e2a3a;
+    border:1px solid #e8ecf0; vertical-align:middle;
+  `;
+  const tdAltStyle = tdStyle + "background:#f8fafc;";
+  const tfStyle = `
+    padding:8px 10px; font-size:12px; font-weight:700;
+    color:#1e2a3a; border:1px solid #d1d5db;
+    background:#eff6ff;
+  `;
+
+  const headerHtml = headers.map(h => `<th style="${thStyle}">${h}</th>`).join("");
+
+  const bodyHtml = rows.map((row, ri) => {
+    const style = ri % 2 === 0 ? tdStyle : tdAltStyle;
+    const cells = row.map(cell => `<td style="${style}">${cell ?? ""}</td>`).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+
+  const footerHtml = footerRow
+    ? `<tfoot><tr>${footerRow.map(c => `<td style="${tfStyle}">${c ?? ""}</td>`).join("")}</tr></tfoot>`
+    : "";
+
+  return `
+    <div style="font-family:'Segoe UI',Arial,sans-serif; padding:24px; background:#fff; min-width:900px;">
+      <h2 style="margin:0 0 4px; font-size:18px; color:#1e2a3a;">${title}</h2>
+      <p style="margin:0 0 2px; font-size:12px; color:#5a6478;">${subtitle}</p>
+      <p style="margin:0 0 16px; font-size:11px; color:#8a94a6;">
+        Xuất lúc: ${new Date().toLocaleString("vi-VN")}
+      </p>
+      <table style="width:100%; border-collapse:collapse;">
+        <thead><tr>${headerHtml}</tr></thead>
+        <tbody>${bodyHtml}</tbody>
+        ${footerHtml}
+      </table>
+    </div>
+  `;
+}
+
+/**
+ * Render HTML string → canvas → PDF và tải về
+ */
+async function htmlToPDF(htmlStr, filename) {
+  // Tạo container ẩn
+  const container = document.createElement("div");
+  container.style.cssText = `
+    position:fixed; left:-9999px; top:0;
+    width:1100px; background:#fff; z-index:-1;
+  `;
+  container.innerHTML = htmlStr;
+  document.body.appendChild(container);
+
+  try {
+    const canvas = await html2canvas(container, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const imgW    = canvas.width;
+    const imgH    = canvas.height;
+
+    // A4 landscape: 297 × 210 mm
+    const pdfW = 297;
+    const pdfH = Math.round((imgH / imgW) * pdfW);
+
+    const pdf = new jsPDF({
+      orientation: pdfH > pdfW ? "portrait" : "landscape",
+      unit: "mm",
+      format: pdfH > pdfW ? [210, pdfH] : [pdfW, pdfH],
+    });
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+    pdf.save(filename);
+  } finally {
+    document.body.removeChild(container);
+  }
 }
 
 /**
  * Xuất bảng lương ra PDF
  */
-export function exportPayrollPDF(rows, month) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+export async function exportPayrollPDF(rows, month) {
+  const fmtVND2 = (n) => new Intl.NumberFormat("vi-VN").format(Math.round(n ?? 0)) + " đ";
+  const totalBase = rows.reduce((s, r) => s + Number(r.BaseSalary  || 0), 0);
+  const totalBonus= rows.reduce((s, r) => s + Number(r.Bonus       || 0), 0);
+  const totalDed  = rows.reduce((s, r) => s + Number(r.Deductions  || 0), 0);
+  const totalNet  = rows.reduce((s, r) => s + Number(r.NetSalary   || 0), 0);
 
-  pdfHeader(
-    doc,
-    `BANG LUONG THANG ${month}`,
-    `Tong so: ${rows.length} nhan vien`
-  );
-
-  const totalNet = rows.reduce((s, r) => s + Number(r.NetSalary || 0), 0);
-
+  const headers = ["STT", "Mã NV", "Họ và tên", "Phòng ban", "Chức vụ",
+                   "Lương CB", "Thưởng", "Khấu trừ", "Thực nhận"];
   const body = rows.map((r, i) => [
-    i + 1,
-    r.EmployeeID,
-    r.FullName,
-    r.DepartmentName || "—",
-    r.PositionName   || "—",
-    fmtVND(r.BaseSalary),
-    fmtVND(r.Bonus),
-    fmtVND(r.Deductions),
-    fmtVND(r.NetSalary),
+    i + 1, r.EmployeeID, r.FullName, r.DepartmentName || "—", r.PositionName || "—",
+    fmtVND2(r.BaseSalary), fmtVND2(r.Bonus), fmtVND2(r.Deductions), fmtVND2(r.NetSalary),
   ]);
+  const footer = ["", "", "TỔNG CỘNG", "", "",
+    fmtVND2(totalBase), fmtVND2(totalBonus), fmtVND2(totalDed), fmtVND2(totalNet)];
 
-  // Dòng tổng
-  body.push([
-    "", "", "TONG CONG", "", "",
-    fmtVND(rows.reduce((s, r) => s + Number(r.BaseSalary  || 0), 0)),
-    fmtVND(rows.reduce((s, r) => s + Number(r.Bonus       || 0), 0)),
-    fmtVND(rows.reduce((s, r) => s + Number(r.Deductions  || 0), 0)),
-    fmtVND(totalNet),
-  ]);
-
-  autoTable(doc, {
-    startY: 36,
-    head: [["STT", "Ma NV", "Ho va ten", "Phong ban", "Chuc vu",
-            "Luong CB", "Thuong", "Khau tru", "Thuc nhan"]],
-    body,
-    styles:     { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
-    columnStyles: {
-      0: { cellWidth: 10, halign: "center" },
-      1: { cellWidth: 14, halign: "center" },
-      2: { cellWidth: 38 },
-      3: { cellWidth: 30 },
-      4: { cellWidth: 28 },
-      5: { cellWidth: 28, halign: "right" },
-      6: { cellWidth: 24, halign: "right" },
-      7: { cellWidth: 24, halign: "right" },
-      8: { cellWidth: 28, halign: "right" },
-    },
-    didDrawRow: (data) => {
-      // Tô màu dòng tổng
-      if (data.row.index === body.length - 1) {
-        doc.setFillColor(239, 246, 255);
-      }
-    },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
-  });
-
-  doc.save(`bang-luong-${month}.pdf`);
+  const html = buildHtmlTable(
+    `BẢNG LƯƠNG THÁNG ${month}`,
+    `Tổng số: ${rows.length} nhân viên`,
+    headers, body, footer
+  );
+  await htmlToPDF(html, `bang-luong-${month}.pdf`);
 }
 
 /**
  * Xuất chấm công ra PDF
  */
-export function exportAttendancePDF(rows, month) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-
-  pdfHeader(
-    doc,
-    `CHAM CONG THANG ${month}`,
-    `Tong so: ${rows.length} nhan vien`
-  );
-
+export async function exportAttendancePDF(rows, month) {
+  const headers = ["STT", "Mã NV", "Họ và tên", "Phòng ban",
+                   "Ngày làm", "Nghỉ phép", "Vắng mặt", "Giờ OT"];
   const body = rows.map((r, i) => [
-    i + 1,
-    r.EmployeeID,
-    r.FullName,
-    r.DepartmentName || "—",
-    r.WorkDays,
-    r.LeaveDays,
-    r.AbsentDays,
-    r.OvertimeHours,
+    i + 1, r.EmployeeID, r.FullName, r.DepartmentName || "—",
+    r.WorkDays, r.LeaveDays, r.AbsentDays, r.OvertimeHours,
   ]);
-
-  autoTable(doc, {
-    startY: 36,
-    head: [["STT", "Ma NV", "Ho va ten", "Phong ban",
-            "Ngay lam", "Nghi phep", "Vang mat", "Gio OT"]],
-    body,
-    styles:     { fontSize: 9, cellPadding: 2.5 },
-    headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: "bold" },
-    columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
-      1: { cellWidth: 16, halign: "center" },
-      2: { cellWidth: 50 },
-      3: { cellWidth: 40 },
-      4: { cellWidth: 22, halign: "center" },
-      5: { cellWidth: 22, halign: "center" },
-      6: { cellWidth: 22, halign: "center" },
-      7: { cellWidth: 20, halign: "center" },
-    },
-    alternateRowStyles: { fillColor: [240, 253, 244] },
-  });
-
-  doc.save(`cham-cong-${month}.pdf`);
+  const html = buildHtmlTable(
+    `CHẤM CÔNG THÁNG ${month}`,
+    `Tổng số: ${rows.length} nhân viên`,
+    headers, body
+  );
+  await htmlToPDF(html, `cham-cong-${month}.pdf`);
 }
 
 /**
  * Xuất danh sách nhân viên ra PDF
  */
-export function exportEmployeesPDF(rows) {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
-
-  pdfHeader(
-    doc,
-    "DANH SACH NHAN VIEN",
-    `Tong so: ${rows.length} nhan vien`
-  );
-
+export async function exportEmployeesPDF(rows) {
+  const headers = ["STT", "Mã NV", "Họ và tên", "GT", "Phòng ban",
+                   "Chức vụ", "Ngày vào", "Trạng thái"];
+  const statusLabel = (s) => {
+    if (s === "Active")   return "Đang làm";
+    if (s === "Inactive") return "Đã nghỉ";
+    if (s === "OnLeave")  return "Nghỉ phép";
+    return s || "—";
+  };
   const body = rows.map((r, i) => [
-    i + 1,
-    r.EmployeeID,
-    r.FullName,
-    r.Gender === "Male" ? "Nam" : r.Gender === "Female" ? "Nu" : r.Gender || "",
-    r.Department  || "—",
-    r.Position    || "—",
-    r.HireDate    || "—",
-    r.Status      || "—",
+    i + 1, r.EmployeeID, r.FullName,
+    r.Gender === "Male" ? "Nam" : r.Gender === "Female" ? "Nữ" : r.Gender || "",
+    r.Department || "—", r.Position || "—",
+    r.HireDate || "—", statusLabel(r.Status),
   ]);
-
-  autoTable(doc, {
-    startY: 36,
-    head: [["STT", "Ma NV", "Ho va ten", "GT", "Phong ban", "Chuc vu", "Ngay vao", "Trang thai"]],
-    body,
-    styles:     { fontSize: 9, cellPadding: 2.5 },
-    headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: "bold" },
-    columnStyles: {
-      0: { cellWidth: 12, halign: "center" },
-      1: { cellWidth: 16, halign: "center" },
-      2: { cellWidth: 50 },
-      3: { cellWidth: 12, halign: "center" },
-      4: { cellWidth: 38 },
-      5: { cellWidth: 38 },
-      6: { cellWidth: 24, halign: "center" },
-      7: { cellWidth: 22, halign: "center" },
-    },
-    alternateRowStyles: { fillColor: [253, 244, 255] },
-  });
-
-  doc.save("danh-sach-nhan-vien.pdf");
+  const html = buildHtmlTable(
+    "DANH SÁCH NHÂN VIÊN",
+    `Tổng số: ${rows.length} nhân viên`,
+    headers, body
+  );
+  await htmlToPDF(html, "danh-sach-nhan-vien.pdf");
 }

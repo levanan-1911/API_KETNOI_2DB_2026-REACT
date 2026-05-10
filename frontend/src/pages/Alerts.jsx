@@ -42,7 +42,6 @@ export default function Alerts() {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
   const [filter,   setFilter]   = useState("all");   // all | unread | read
-  const [category, setCategory] = useState("all");   // all | salary | attendance | hr
 
   const load = useCallback(() => {
     setLoading(true);
@@ -89,15 +88,10 @@ export default function Alerts() {
 
   // Filter
   const filtered = alerts.filter(a => {
-    const readOk     = filter === "all" || (filter === "unread" ? !a.read : a.read);
-    const categoryOk = category === "all" || a.category === category;
-    return readOk && categoryOk;
+    return filter === "all" || (filter === "unread" ? !a.read : a.read);
   });
 
   const unreadCount = alerts.filter(a => !a.read).length;
-
-  // Đếm theo category
-  const countBy = (cat) => alerts.filter(a => a.category === cat).length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -173,7 +167,6 @@ export default function Alerts() {
 
       {/* ── Filter Tabs ── */}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        {/* Read filter */}
         {[
           { id: "all",    label: "Tất cả" },
           { id: "unread", label: `Chưa đọc${unreadCount > 0 ? ` (${unreadCount})` : ""}` },
@@ -185,27 +178,6 @@ export default function Alerts() {
             background: filter === tab.id ? "#2563eb" : "#fff",
             color: filter === tab.id ? "#fff" : "#5a6478",
             fontWeight: 600, fontSize: 13, cursor: "pointer",
-          }}>
-            {tab.label}
-          </button>
-        ))}
-
-        <span style={{ color: "#d1d5db", margin: "0 4px" }}>|</span>
-
-        {/* Category filter */}
-        {[
-          { id: "all",        label: "Tất cả loại" },
-          { id: "salary",     label: `💰 Lương (${countBy("salary")})` },
-          { id: "attendance", label: `📅 Chấm công (${countBy("attendance")})` },
-          { id: "hr",         label: `👥 Nhân sự (${countBy("hr")})` },
-          { id: "birthday",   label: `🎂 Sinh nhật (${countBy("birthday")})` },
-        ].map(tab => (
-          <button key={tab.id} onClick={() => setCategory(tab.id)} style={{
-            padding: "7px 14px", borderRadius: 8,
-            border: category === tab.id ? "none" : "1px solid #d1d5db",
-            background: category === tab.id ? "#1e2a3a" : "#fff",
-            color: category === tab.id ? "#fff" : "#5a6478",
-            fontWeight: 600, fontSize: 12, cursor: "pointer",
           }}>
             {tab.label}
           </button>

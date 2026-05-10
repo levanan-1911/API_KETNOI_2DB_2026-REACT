@@ -82,7 +82,7 @@ function GlobalSearch() {
     setQuery("");
     setResults([]);
     setOpen(false);
-    navigate(`/employees/${emp.EmployeeID}/edit`);
+    navigate(`/employees/${emp.EmployeeID}`);
   };
 
   const handleClear = () => {

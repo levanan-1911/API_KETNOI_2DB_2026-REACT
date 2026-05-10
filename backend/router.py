@@ -1319,3 +1319,28 @@ def seed_payroll_attendance():
         "skipped":              skipped,
         "total_records":        len(records),
     })
+
+
+# ============================================================
+# ML ALERTS – Cảnh báo thông minh từ Isolation Forest
+# GET /api/alerts
+# ============================================================
+
+@router.route("/api/alerts", methods=["GET"])
+def get_alerts():
+    """
+    Chạy ML pipeline (Isolation Forest) trên dữ liệu lương + chấm công,
+    trả về danh sách cảnh báo có nghĩa nghiệp vụ.
+    """
+    try:
+        import sys, os
+        sys.path.insert(0, os.path.dirname(__file__))
+        from ml.alerts import generate_alerts
+        alerts = generate_alerts()
+        return jsonify({
+            "status": "success",
+            "count":  len(alerts),
+            "data":   alerts,
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "msg": str(e)}), 500

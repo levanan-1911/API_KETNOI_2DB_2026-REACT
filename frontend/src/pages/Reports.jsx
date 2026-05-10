@@ -7,6 +7,10 @@ import {
   Users, DollarSign, TrendingUp, Award, RefreshCw,
   Download, AlertCircle,
 } from "lucide-react";
+import {
+  exportPayrollExcel, exportPayrollPDF,
+  exportEmployeesExcel, exportEmployeesPDF,
+} from "../utils/exportUtils";
 
 const API = "http://localhost:5000";
 
@@ -208,9 +212,13 @@ function TabHR() {
       <div className="content-card" style={{ padding: 0, overflow: "hidden" }}>
         <div style={{ padding: "16px 20px", borderBottom: "1px solid #e8ecf0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h6 style={{ margin: 0, fontWeight: 700, color: "#1e2a3a" }}>Chi tiết theo phòng ban</h6>
-          <button onClick={handleExport}
-            style={{ display: "flex", alignItems: "center", gap: 6, background: "#f4f6fb", border: "1px solid #e8ecf0", borderRadius: 8, color: "#5a6478", fontWeight: 600, fontSize: 12, padding: "6px 12px", cursor: "pointer" }}>
-            <Download size={13} /> Xuất CSV
+          <button onClick={() => exportEmployeesExcel(employees)}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, color: "#16a34a", fontWeight: 600, fontSize: 12, padding: "6px 12px", cursor: "pointer" }}>
+            <Download size={13} /> Excel
+          </button>
+          <button onClick={() => exportEmployeesPDF(employees)}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontWeight: 600, fontSize: 12, padding: "6px 12px", cursor: "pointer" }}>
+            <Download size={13} /> PDF
           </button>
         </div>
         <div style={{ overflowX: "auto" }}>
@@ -342,9 +350,13 @@ function TabPayroll() {
           style={{ display: "flex", alignItems: "center", gap: 6, background: "#f4f6fb", border: "1px solid #e8ecf0", borderRadius: 8, color: "#5a6478", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
           <RefreshCw size={14} className={loading ? "spin" : ""} /> Làm mới
         </button>
-        <button onClick={handleExport} disabled={loading || !rows.length}
+        <button onClick={() => exportPayrollExcel(rows, month)} disabled={loading || !rows.length}
           style={{ display: "flex", alignItems: "center", gap: 6, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, color: "#16a34a", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
-          <Download size={14} /> Xuất CSV
+          <Download size={14} /> Excel
+        </button>
+        <button onClick={() => exportPayrollPDF(rows, month)} disabled={loading || !rows.length}
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
+          <Download size={14} /> PDF
         </button>
       </div>
 
@@ -537,11 +549,22 @@ function TabDividend() {
   ).map(([name, value]) => ({ name, value }));
 
   const handleExport = () => {
-    exportCSV(
-      data.map(r => ({ EmployeeID: r.EmployeeID, FullName: r.FullName, Department: r.DepartmentName, Position: r.PositionName, TotalRecords: r.TotalRecords, TotalAmount: r.TotalAmount })),
-      ["EmployeeID","FullName","Department","Position","TotalRecords","TotalAmount"],
-      `co-tuc-${year}.csv`
-    );
+    // Export cổ tức ra Excel
+    const XLSX = require("xlsx");
+    const exportData = data.map((r, i) => ({
+      "STT": i + 1,
+      "Mã NV": r.EmployeeID,
+      "Họ và tên": r.FullName,
+      "Phòng ban": r.DepartmentName || "",
+      "Chức vụ": r.PositionName || "",
+      "Số lần": r.TotalRecords,
+      "Tổng cổ tức (đ)": Number(r.TotalAmount || 0),
+    }));
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    ws["!cols"] = [{ wch: 5 }, { wch: 8 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 10 }, { wch: 18 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Co tuc ${year}`);
+    XLSX.writeFile(wb, `co-tuc-${year}.xlsx`);
   };
 
   return (
@@ -557,8 +580,8 @@ function TabDividend() {
           <RefreshCw size={14} className={loading ? "spin" : ""} /> Làm mới
         </button>
         <button onClick={handleExport} disabled={loading || !data.length}
-          style={{ display: "flex", alignItems: "center", gap: 6, background: "#fdf4ff", border: "1px solid #e9d5ff", borderRadius: 8, color: "#9333ea", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
-          <Download size={14} /> Xuất CSV
+          style={{ display: "flex", alignItems: "center", gap: 6, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, color: "#16a34a", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
+          <Download size={14} /> Excel
         </button>
       </div>
 

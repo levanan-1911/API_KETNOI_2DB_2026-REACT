@@ -2,8 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   DollarSign, Eye, Edit3, TrendingUp,
-  TrendingDown, Users, RefreshCw, X, Check, AlertCircle,
+  TrendingDown, Users, RefreshCw, X, Check, AlertCircle, Download,
 } from "lucide-react";
+import { exportPayrollExcel, exportPayrollPDF, exportAttendanceExcel, exportAttendancePDF } from "../utils/exportUtils";
 
 /* ── helpers ─────────────────────────────────────────── */
 const fmt = (n) =>
@@ -271,6 +272,14 @@ export default function Payroll() {
           >
             <RefreshCw size={14} className={loading ? "spin" : ""} />
             Làm mới
+          </button>
+          <button onClick={() => exportPayrollExcel(rows, month)} disabled={loading || !rows.length}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, color: "#16a34a", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
+            <Download size={14} /> Excel
+          </button>
+          <button onClick={() => exportPayrollPDF(rows, month)} disabled={loading || !rows.length}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontWeight: 600, fontSize: 13, padding: "7px 14px", cursor: "pointer" }}>
+            <Download size={14} /> PDF
           </button>
         </div>
       </div>

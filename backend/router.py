@@ -1456,3 +1456,58 @@ def get_department_performance():
 
     result.sort(key=lambda x: x["DepartmentName"])
     return jsonify({"status": "success", "data": result, "month": latest})
+
+
+# ============================================================
+# GLOBAL SEARCH – Tìm kiếm nhân viên toàn hệ thống
+# GET /api/search?q=keyword
+# ============================================================
+
+@router.route("/api/search", methods=["GET"])
+def global_search():
+    """
+    Tìm kiếm nhân viên theo tên, email, mã NV, phòng ban.
+    Query params: ?q=keyword (tối thiểu 2 ký tự)
+    Trả về tối đa 10 kết quả.
+    """
+    q = request.args.get("q", "").strip()
+    if len(q) < 2:
+        return jsonify({"status": "success", "data": []})
+
+    sql = get_sqlserver_connection()
+    cur = sql.cursor()
+
+    like = f"%{q}%"
+    cur.execute("""
+        SELECT TOP 10
+            e.EmployeeID,
+            e.FullName,
+            e.Email,
+            e.Status,
+            d.DepartmentName,
+            p.PositionName
+        FROM Employees e
+        LEFT JOIN Departments d ON e.DepartmentID = d.DepartmentID
+        LEFT JOIN Positions   p ON e.PositionID   = p.PositionID
+        WHERE
+            e.FullName       LIKE ?  OR
+            e.Email          LIKE ?  OR
+            d.DepartmentName LIKE ?  OR
+            CAST(e.EmployeeID AS NVARCHAR) LIKE ?
+        ORDER BY
+            CASE WHEN e.Status = 'Active' THEN 0 ELSE 1 END,
+            e.FullName
+    """, (like, like, like, like))
+
+    rows = []
+    for r in cur.fetchall():
+        rows.append({
+            "EmployeeID":     r[0],
+            "FullName":       r[1],
+            "Email":          r[2],
+            "Status":         r[3],
+            "DepartmentName": r[4] or "—",
+            "PositionName":   r[5] or "—",
+        })
+
+    return jsonify({"status": "success", "data": rows, "query": q})

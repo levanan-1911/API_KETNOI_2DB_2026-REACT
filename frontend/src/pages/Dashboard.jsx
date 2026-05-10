@@ -93,21 +93,22 @@ function Skeleton({ h = 20, w = "100%", radius = 8 }) {
 
 /* ── Main Dashboard ───────────────────────────────────── */
 export default function Dashboard() {
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [data, setData]           = useState(null);
+  const [perfData, setPerfData]   = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
 
   const load = () => {
     setLoading(true);
     setError(null);
-    fetch("http://localhost:5000/api/reports/dashboard")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((res) => {
+    Promise.all([
+      fetch("http://localhost:5000/api/reports/dashboard").then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }),
+      fetch("http://localhost:5000/api/departments/performance").then(r => r.json()),
+    ])
+      .then(([res, perfRes]) => {
         setData(res.data);
+        setPerfData(perfRes.data || []);
         setLastUpdate(new Date());
         setLoading(false);
       })
@@ -136,24 +137,22 @@ export default function Dashboard() {
       fill:  PIE_COLORS[i % PIE_COLORS.length],
     }));
 
-  // Radar data – đánh giá năng lực phòng ban (mô phỏng dựa trên danh sách phòng ban thực)
-  const RADAR_AXES = ["Hiệu suất", "Chấm công", "Đào tạo", "Chi phí", "Tăng trưởng"];
-  // Seed ngẫu nhiên ổn định theo tên phòng ban để giá trị không đổi mỗi lần render
-  const seededVal = (name, axis) => {
-    let hash = 0;
-    for (let i = 0; i < (name + axis).length; i++)
-      hash = ((hash << 5) - hash + (name + axis).charCodeAt(i)) | 0;
-    return 55 + Math.abs(hash % 40); // giá trị từ 55–94
+  // Radar data – từ API performance thực tế
+  const RADAR_AXES = ["HieuSuat", "ChamCong", "ChiPhi", "TangTruong", "NangDong"];
+  const RADAR_LABELS = {
+    HieuSuat: "Hiệu suất", ChamCong: "Chấm công",
+    ChiPhi: "Chi phí", TangTruong: "Tăng trưởng", NangDong: "Năng động",
   };
-  const radarData = RADAR_AXES.map((axis) => {
-    const entry = { axis };
-    byDept.slice(0, 5).forEach((d) => {
+
+  const radarData = RADAR_AXES.map(axis => {
+    const entry = { axis: RADAR_LABELS[axis] };
+    perfData.slice(0, 5).forEach(d => {
       const shortName = d.DepartmentName?.replace(/^Phòng\s+/i, "") ?? d.DepartmentName;
-      entry[shortName] = seededVal(d.DepartmentName, axis);
+      entry[shortName] = d[axis] ?? 0;
     });
     return entry;
   });
-  const radarDepts = byDept.slice(0, 5).map((d) =>
+  const radarDepts = perfData.slice(0, 5).map(d =>
     d.DepartmentName?.replace(/^Phòng\s+/i, "") ?? d.DepartmentName
   );
 
@@ -316,7 +315,7 @@ export default function Dashboard() {
               <h5 style={{ margin: 0 }}>Đánh giá năng lực phòng ban</h5>
               <span style={{ fontSize: 11, color: "#8a94a6", background: "#f4f6fb",
                              padding: "3px 10px", borderRadius: 20, fontWeight: 600 }}>
-                Điểm / 100
+                Dữ liệu thực · Điểm / 100
               </span>
             </div>
 
@@ -350,7 +349,7 @@ export default function Dashboard() {
                     ))}
                     <Tooltip
                       content={<CustomTooltip />}
-                      formatter={(v) => `${v} điểm`}
+                      formatter={(v) => [`${v} điểm`, ""]}
                     />
                     <Legend
                       iconType="circle"

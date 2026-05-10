@@ -1344,3 +1344,115 @@ def get_alerts():
         })
     except Exception as e:
         return jsonify({"status": "error", "msg": str(e)}), 500
+
+
+# ============================================================
+# DEPARTMENT PERFORMANCE – Điểm năng lực thực từ dữ liệu DB
+# GET /api/departments/performance
+# ============================================================
+
+@router.route("/api/departments/performance", methods=["GET"])
+def get_department_performance():
+    """
+    Tính điểm năng lực thực tế cho từng phòng ban (0-100) dựa trên:
+    - Hiệu suất:  NetSalary / BaseSalary * 100 (tỷ lệ lương thực nhận)
+    - Chấm công:  WorkDays / 22 * 100 (tỷ lệ ngày làm)
+    - Chi phí:    100 - (Deductions / BaseSalary * 100) (khấu trừ thấp = tốt)
+    - Tăng trưởng: % tăng lương TB so tháng trước (chuẩn hóa 0-100)
+    - Năng động:  % nhân viên có OvertimeHours > 0
+    """
+    my  = get_mysql_connection()
+    cur = my.cursor(dictionary=True)
+
+    # Lấy 2 tháng gần nhất
+    cur.execute("""
+        SELECT DISTINCT DATE_FORMAT(SalaryMonth, '%Y-%m') AS m
+        FROM salaries
+        ORDER BY m DESC
+        LIMIT 2
+    """)
+    months = [r["m"] for r in cur.fetchall()]
+    if not months:
+        return jsonify({"status": "success", "data": []})
+
+    latest = months[0]
+    prev   = months[1] if len(months) > 1 else months[0]
+
+    # Lương tháng hiện tại theo phòng ban
+    cur.execute("""
+        SELECT
+            ep.DepartmentID,
+            dp.DepartmentName,
+            AVG(s.BaseSalary)                                   AS AvgBase,
+            AVG(s.Deductions)                                   AS AvgDed,
+            AVG(s.BaseSalary + s.Bonus - s.Deductions)          AS AvgNet,
+            COUNT(s.EmployeeID)                                 AS EmpCount
+        FROM salaries s
+        JOIN employees_payroll  ep ON s.EmployeeID   = ep.EmployeeID
+        LEFT JOIN departments_payroll dp ON ep.DepartmentID = dp.DepartmentID
+        WHERE DATE_FORMAT(s.SalaryMonth, '%%Y-%%m') = %s
+        GROUP BY ep.DepartmentID, dp.DepartmentName
+    """, (latest,))
+    latest_sal = {r["DepartmentID"]: r for r in cur.fetchall()}
+
+    # Lương tháng trước theo phòng ban
+    cur.execute("""
+        SELECT ep.DepartmentID,
+               AVG(s.BaseSalary + s.Bonus - s.Deductions) AS AvgNet
+        FROM salaries s
+        JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
+        WHERE DATE_FORMAT(s.SalaryMonth, '%%Y-%%m') = %s
+        GROUP BY ep.DepartmentID
+    """, (prev,))
+    prev_sal = {r["DepartmentID"]: float(r["AvgNet"] or 0) for r in cur.fetchall()}
+
+    # Chấm công tháng hiện tại theo phòng ban
+    cur.execute("""
+        SELECT
+            ep.DepartmentID,
+            AVG(a.WorkDays)                                     AS AvgWork,
+            AVG(a.AbsentDays)                                   AS AvgAbsent,
+            SUM(CASE WHEN a.OvertimeHours > 0 THEN 1 ELSE 0 END) AS OTCount,
+            COUNT(a.EmployeeID)                                 AS Total
+        FROM attendance a
+        JOIN employees_payroll ep ON a.EmployeeID = ep.EmployeeID
+        WHERE a.AttendanceMonth = MONTH(%s) AND a.AttendanceYear = YEAR(%s)
+        GROUP BY ep.DepartmentID
+    """, (latest + "-01", latest + "-01"))
+    attend = {r["DepartmentID"]: r for r in cur.fetchall()}
+
+    # Tổng hợp điểm
+    result = []
+    for dept_id, sal in latest_sal.items():
+        avg_base = float(sal["AvgBase"] or 1)
+        avg_ded  = float(sal["AvgDed"]  or 0)
+        avg_net  = float(sal["AvgNet"]  or 0)
+        prev_net = prev_sal.get(dept_id, avg_net)
+
+        att = attend.get(dept_id, {})
+        avg_work  = float(att.get("AvgWork",   20) or 20)
+        ot_count  = int(att.get("OTCount",      0) or 0)
+        total_att = int(att.get("Total",         1) or 1)
+
+        # Tính điểm từng trục (0-100)
+        score_hieu_suat  = min(100, round(avg_net / avg_base * 100, 1)) if avg_base > 0 else 50
+        score_cham_cong  = min(100, round(avg_work / 22 * 100, 1))
+        score_chi_phi    = min(100, max(0, round(100 - (avg_ded / avg_base * 100), 1))) if avg_base > 0 else 50
+        growth_pct       = ((avg_net - prev_net) / prev_net * 100) if prev_net > 0 else 0
+        score_tang_truong= min(100, max(0, round(50 + growth_pct * 2, 1)))  # 50 = baseline
+        score_nang_dong  = min(100, round(ot_count / total_att * 100, 1)) if total_att > 0 else 0
+
+        result.append({
+            "DepartmentID":   dept_id,
+            "DepartmentName": sal["DepartmentName"] or f"Phòng {dept_id}",
+            "HieuSuat":       score_hieu_suat,
+            "ChamCong":       score_cham_cong,
+            "ChiPhi":         score_chi_phi,
+            "TangTruong":     score_tang_truong,
+            "NangDong":       score_nang_dong,
+            "AvgNet":         round(avg_net),
+            "EmpCount":       int(sal["EmpCount"] or 0),
+        })
+
+    result.sort(key=lambda x: x["DepartmentName"])
+    return jsonify({"status": "success", "data": result, "month": latest})

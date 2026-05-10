@@ -1242,3 +1242,78 @@ def get_dividend_report():
     })
 
 
+
+# ============================================================
+# SEED – Batch insert lương + chấm công (dùng cho script seed)
+# POST /api/seed/payroll-attendance
+# ============================================================
+
+@router.route("/api/seed/payroll-attendance", methods=["POST"])
+def seed_payroll_attendance():
+    """
+    Batch insert lương + chấm công cho nhiều nhân viên nhiều tháng.
+    Dùng bởi script database/seed_via_api.py.
+    Body: { "records": [ { EmployeeID, SalaryMonth, SalaryYear,
+                            BaseSalary, Bonus, Deductions,
+                            WorkDays, LeaveDays, AbsentDays, OvertimeHours }, ... ] }
+    """
+    data    = request.get_json()
+    records = data.get("records", [])
+
+    if not records:
+        return jsonify({"status": "error", "msg": "Không có dữ liệu"}), 400
+
+    my     = get_mysql_connection()
+    my_cur = my.cursor()
+
+    inserted_salary     = 0
+    inserted_attendance = 0
+    skipped             = 0
+
+    try:
+        for r in records:
+            emp_id   = r["EmployeeID"]
+            month    = r["SalaryMonth"]
+            year     = r["SalaryYear"]
+            base_s   = r["BaseSalary"]
+            bonus    = r["Bonus"]
+            deduct   = r["Deductions"]
+            work_d   = r["WorkDays"]
+            leave_d  = r["LeaveDays"]
+            absent   = r["AbsentDays"]
+            overtime = r["OvertimeHours"]
+
+            # Insert lương — bỏ qua nếu đã tồn tại (IGNORE)
+            my_cur.execute("""
+                INSERT IGNORE INTO salaries
+                    (EmployeeID, SalaryMonth, SalaryYear, BaseSalary, Bonus, Deductions)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (emp_id, month, year, base_s, bonus, deduct))
+            if my_cur.rowcount > 0:
+                inserted_salary += 1
+            else:
+                skipped += 1
+
+            # Insert chấm công — bỏ qua nếu đã tồn tại
+            my_cur.execute("""
+                INSERT IGNORE INTO attendance
+                    (EmployeeID, AttendanceMonth, AttendanceYear,
+                     WorkDays, LeaveDays, AbsentDays, OvertimeHours)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (emp_id, month, year, work_d, leave_d, absent, overtime))
+            if my_cur.rowcount > 0:
+                inserted_attendance += 1
+
+        my.commit()
+
+    except Exception as e:
+        my.rollback()
+        return jsonify({"status": "error", "msg": str(e)}), 500
+
+    return jsonify({
+        "status":               "success",
+        "inserted_salary":      inserted_salary,
+        "inserted_attendance":  inserted_attendance,
+        "skipped":              skipped,
+        "total_records":        len(records),
+    })

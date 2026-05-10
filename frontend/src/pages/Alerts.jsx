@@ -31,6 +31,7 @@ const CATEGORY_LABEL = {
   salary:     "💰 Lương",
   attendance: "📅 Chấm công",
   hr:         "👥 Nhân sự",
+  birthday:   "🎂 Sinh nhật",
 };
 
 /* ============================================================
@@ -197,6 +198,7 @@ export default function Alerts() {
           { id: "salary",     label: `💰 Lương (${countBy("salary")})` },
           { id: "attendance", label: `📅 Chấm công (${countBy("attendance")})` },
           { id: "hr",         label: `👥 Nhân sự (${countBy("hr")})` },
+          { id: "birthday",   label: `🎂 Sinh nhật (${countBy("birthday")})` },
         ].map(tab => (
           <button key={tab.id} onClick={() => setCategory(tab.id)} style={{
             padding: "7px 14px", borderRadius: 8,

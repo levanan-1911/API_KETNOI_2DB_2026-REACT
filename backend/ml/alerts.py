@@ -161,11 +161,12 @@ def generate_alerts() -> list[dict]:
             alert_id += 1
 
     # ── 3. Rule-based bổ sung ─────────────────────────────────
-    # Phòng ban không có trưởng phòng
     try:
         from config import get_sqlserver_connection
         sql = get_sqlserver_connection()
         cur = sql.cursor()
+
+        # 3a. Phòng ban không có trưởng phòng
         cur.execute("""
             SELECT d.DepartmentName
             FROM Departments d
@@ -189,6 +190,63 @@ def generate_alerts() -> list[dict]:
                 "read":        False,
             })
             alert_id += 1
+
+        # 3b. Sinh nhật trong 7 ngày tới
+        cur.execute("""
+            SELECT
+                EmployeeID,
+                FullName,
+                DateOfBirth,
+                -- Số ngày đến sinh nhật năm nay (hoặc năm sau nếu đã qua)
+                CASE
+                    WHEN DATEFROMPARTS(YEAR(GETDATE()), MONTH(DateOfBirth), DAY(DateOfBirth)) >= CAST(GETDATE() AS DATE)
+                    THEN DATEDIFF(DAY, CAST(GETDATE() AS DATE),
+                         DATEFROMPARTS(YEAR(GETDATE()), MONTH(DateOfBirth), DAY(DateOfBirth)))
+                    ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE),
+                         DATEFROMPARTS(YEAR(GETDATE())+1, MONTH(DateOfBirth), DAY(DateOfBirth)))
+                END AS DaysUntilBirthday
+            FROM Employees
+            WHERE Status != 'Inactive'
+              AND DateOfBirth IS NOT NULL
+            HAVING DaysUntilBirthday <= 7
+            ORDER BY DaysUntilBirthday
+        """)
+        birthdays = cur.fetchall()
+        for r in birthdays:
+            emp_id   = r[0]
+            name     = r[1]
+            dob      = r[2]
+            days     = r[3]
+            age      = datetime.now().year - dob.year if dob else 0
+
+            if days == 0:
+                time_str  = "Hôm nay 🎂"
+                severity  = "info"
+                title     = f"🎂 Sinh nhật hôm nay: {name}"
+                desc      = f"Hôm nay là sinh nhật của {name} ({age} tuổi). Chúc mừng sinh nhật!"
+            elif days == 1:
+                time_str  = "Ngày mai"
+                severity  = "info"
+                title     = f"🎁 Sinh nhật ngày mai: {name}"
+                desc      = f"{name} sẽ tròn {age + 1} tuổi vào ngày mai. Đừng quên gửi lời chúc!"
+            else:
+                time_str  = f"Còn {days} ngày"
+                severity  = "info"
+                title     = f"🎈 Sinh nhật sắp tới: {name}"
+                desc      = f"{name} sẽ tròn {age + 1} tuổi trong {days} ngày nữa ({dob.strftime('%d/%m')})."
+
+            alerts.append({
+                "id":          alert_id,
+                "severity":    severity,
+                "title":       title,
+                "description": desc,
+                "time":        time_str,
+                "category":    "birthday",
+                "employeeId":  emp_id,
+                "read":        False,
+            })
+            alert_id += 1
+
     except Exception:
         pass
 

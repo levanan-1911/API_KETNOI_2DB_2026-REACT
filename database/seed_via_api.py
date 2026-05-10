@@ -285,20 +285,42 @@ if __name__ == "__main__":
         print(f"\n  ✓ Backend đang chạy (departments: {len(r.json())} phòng ban)")
     except Exception as e:
         print(f"\n  ✗ Không kết nối được backend: {e}")
-        print("  → Hãy chạy backend trước: python main.py")
+        print("  → Hãy chạy backend trước: python backend/app.py")
         sys.exit(1)
 
-    # Bước 1: Thêm nhân viên
-    employees = seed_employees(100)
+    # Kiểm tra đã có nhân viên seed chưa (email @company.vn)
+    try:
+        r = requests.get(f"{API}/api/employees", timeout=10)
+        all_emps = r.json()
+        seed_emps = [e for e in all_emps if str(e.get("Email","")).endswith("@company.vn")]
+        print(f"\n  Phát hiện {len(seed_emps)} nhân viên seed đã tồn tại trong DB")
+    except Exception as e:
+        seed_emps = []
+        print(f"  Không lấy được danh sách nhân viên: {e}")
 
-    if not employees:
-        print("\n  Không có nhân viên nào được thêm. Dừng lại.")
-        sys.exit(1)
+    if len(seed_emps) >= 100:
+        # Đã có đủ nhân viên — bỏ qua bước 1, chỉ seed lương+chấm công
+        print("  → Bỏ qua bước 1 (đã đủ 100 nhân viên), chỉ seed lương + chấm công")
+        employees = [
+            {
+                "EmployeeID":   e["EmployeeID"],
+                "PositionID":   e.get("PositionID") or 3,
+                "Status":       e.get("Status") or "Active",
+                "DepartmentID": e.get("DepartmentID") or 1,
+            }
+            for e in seed_emps
+        ]
+    else:
+        # Chưa đủ — thêm nhân viên mới
+        employees = seed_employees(100 - len(seed_emps))
+        if not employees:
+            print("\n  Không có nhân viên nào được thêm. Dừng lại.")
+            sys.exit(1)
 
     # Bước 2: Seed lương + chấm công
     seed_salaries_attendance(employees)
 
     print("\n" + "="*55)
     print("  HOÀN TẤT SEED DATA")
-    print(f"  {len(employees)} nhân viên đã được thêm vào cả 2 DB")
+    print(f"  {len(employees)} nhân viên đã được xử lý")
     print("="*55 + "\n")

@@ -1390,7 +1390,7 @@ def get_department_performance():
         FROM salaries s
         JOIN employees_payroll  ep ON s.EmployeeID   = ep.EmployeeID
         LEFT JOIN departments_payroll dp ON ep.DepartmentID = dp.DepartmentID
-        WHERE DATE_FORMAT(s.SalaryMonth, '%%Y-%%m') = %s
+        WHERE DATE_FORMAT(s.SalaryMonth, '%Y-%m') = %s
         GROUP BY ep.DepartmentID, dp.DepartmentName
     """, (latest,))
     latest_sal = {r["DepartmentID"]: r for r in cur.fetchall()}
@@ -1401,7 +1401,7 @@ def get_department_performance():
                AVG(s.BaseSalary + s.Bonus - s.Deductions) AS AvgNet
         FROM salaries s
         JOIN employees_payroll ep ON s.EmployeeID = ep.EmployeeID
-        WHERE DATE_FORMAT(s.SalaryMonth, '%%Y-%%m') = %s
+        WHERE DATE_FORMAT(s.SalaryMonth, '%Y-%m') = %s
         GROUP BY ep.DepartmentID
     """, (prev,))
     prev_sal = {r["DepartmentID"]: float(r["AvgNet"] or 0) for r in cur.fetchall()}

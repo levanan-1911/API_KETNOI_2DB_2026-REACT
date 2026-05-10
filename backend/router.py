@@ -1253,9 +1253,10 @@ def seed_payroll_attendance():
     """
     Batch insert lương + chấm công cho nhiều nhân viên nhiều tháng.
     Dùng bởi script database/seed_via_api.py.
-    Body: { "records": [ { EmployeeID, SalaryMonth, SalaryYear,
+    Body: { "records": [ { EmployeeID, SalaryMonth (YYYY-MM-DD),
                             BaseSalary, Bonus, Deductions,
                             WorkDays, LeaveDays, AbsentDays, OvertimeHours }, ... ] }
+    SalaryMonth dạng DATE: '2025-05-01', '2025-06-01', ...
     """
     data    = request.get_json()
     records = data.get("records", [])
@@ -1272,23 +1273,24 @@ def seed_payroll_attendance():
 
     try:
         for r in records:
-            emp_id   = r["EmployeeID"]
-            month    = r["SalaryMonth"]
-            year     = r["SalaryYear"]
-            base_s   = r["BaseSalary"]
-            bonus    = r["Bonus"]
-            deduct   = r["Deductions"]
-            work_d   = r["WorkDays"]
-            leave_d  = r["LeaveDays"]
-            absent   = r["AbsentDays"]
-            overtime = r["OvertimeHours"]
+            emp_id        = r["EmployeeID"]
+            salary_month  = r["SalaryMonth"]   # YYYY-MM-DD
+            attend_month  = int(r["AttendanceMonth"])
+            attend_year   = int(r["AttendanceYear"])
+            base_s        = r["BaseSalary"]
+            bonus         = r["Bonus"]
+            deduct        = r["Deductions"]
+            work_d        = r["WorkDays"]
+            leave_d       = r["LeaveDays"]
+            absent        = r["AbsentDays"]
+            overtime      = r["OvertimeHours"]
 
             # Insert lương — bỏ qua nếu đã tồn tại (IGNORE)
             my_cur.execute("""
                 INSERT IGNORE INTO salaries
-                    (EmployeeID, SalaryMonth, SalaryYear, BaseSalary, Bonus, Deductions)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            """, (emp_id, month, year, base_s, bonus, deduct))
+                    (EmployeeID, SalaryMonth, BaseSalary, Bonus, Deductions)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (emp_id, salary_month, base_s, bonus, deduct))
             if my_cur.rowcount > 0:
                 inserted_salary += 1
             else:
@@ -1300,7 +1302,7 @@ def seed_payroll_attendance():
                     (EmployeeID, AttendanceMonth, AttendanceYear,
                      WorkDays, LeaveDays, AbsentDays, OvertimeHours)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (emp_id, month, year, work_d, leave_d, absent, overtime))
+            """, (emp_id, attend_month, attend_year, work_d, leave_d, absent, overtime))
             if my_cur.rowcount > 0:
                 inserted_attendance += 1
 

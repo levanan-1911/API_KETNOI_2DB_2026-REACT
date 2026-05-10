@@ -237,8 +237,9 @@ def seed_salaries_attendance(employees):
 
             batch.append({
                 "EmployeeID":      emp_id,
-                "SalaryMonth":     m,
-                "SalaryYear":      y,
+                "SalaryMonth":     f"{y}-{m:02d}-01",  # DATE format YYYY-MM-DD
+                "AttendanceMonth": m,
+                "AttendanceYear":  y,
                 "BaseSalary":      base_s,
                 "Bonus":           bonus,
                 "Deductions":      deductions,

@@ -193,22 +193,25 @@ def generate_alerts() -> list[dict]:
 
         # 3b. Sinh nhật trong 7 ngày tới
         cur.execute("""
-            SELECT
-                EmployeeID,
-                FullName,
-                DateOfBirth,
-                -- Số ngày đến sinh nhật năm nay (hoặc năm sau nếu đã qua)
-                CASE
-                    WHEN DATEFROMPARTS(YEAR(GETDATE()), MONTH(DateOfBirth), DAY(DateOfBirth)) >= CAST(GETDATE() AS DATE)
-                    THEN DATEDIFF(DAY, CAST(GETDATE() AS DATE),
-                         DATEFROMPARTS(YEAR(GETDATE()), MONTH(DateOfBirth), DAY(DateOfBirth)))
-                    ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE),
-                         DATEFROMPARTS(YEAR(GETDATE())+1, MONTH(DateOfBirth), DAY(DateOfBirth)))
-                END AS DaysUntilBirthday
-            FROM Employees
-            WHERE Status != 'Inactive'
-              AND DateOfBirth IS NOT NULL
-            HAVING DaysUntilBirthday <= 7
+            SELECT EmployeeID, FullName, DateOfBirth, DaysUntilBirthday
+            FROM (
+                SELECT
+                    EmployeeID,
+                    FullName,
+                    DateOfBirth,
+                    CASE
+                        WHEN DATEFROMPARTS(YEAR(GETDATE()), MONTH(DateOfBirth), DAY(DateOfBirth))
+                             >= CAST(GETDATE() AS DATE)
+                        THEN DATEDIFF(DAY, CAST(GETDATE() AS DATE),
+                             DATEFROMPARTS(YEAR(GETDATE()), MONTH(DateOfBirth), DAY(DateOfBirth)))
+                        ELSE DATEDIFF(DAY, CAST(GETDATE() AS DATE),
+                             DATEFROMPARTS(YEAR(GETDATE())+1, MONTH(DateOfBirth), DAY(DateOfBirth)))
+                    END AS DaysUntilBirthday
+                FROM Employees
+                WHERE Status != 'Inactive'
+                  AND DateOfBirth IS NOT NULL
+            ) t
+            WHERE DaysUntilBirthday <= 7
             ORDER BY DaysUntilBirthday
         """)
         birthdays = cur.fetchall()
@@ -217,18 +220,27 @@ def generate_alerts() -> list[dict]:
             name     = r[1]
             dob      = r[2]
             days     = r[3]
-            age      = datetime.now().year - dob.year if dob else 0
+
+            # Tính tuổi chính xác: nếu sinh nhật năm nay chưa qua thì chưa tăng tuổi
+            today = datetime.now()
+            if dob:
+                age = today.year - dob.year
+                # Nếu sinh nhật năm nay chưa đến (days > 0) thì chưa tăng tuổi
+                if days > 0:
+                    age -= 1
+            else:
+                age = 0
 
             if days == 0:
                 time_str  = "Hôm nay 🎂"
                 severity  = "info"
                 title     = f"🎂 Sinh nhật hôm nay: {name}"
-                desc      = f"Hôm nay là sinh nhật của {name} ({age} tuổi). Chúc mừng sinh nhật!"
+                desc      = f"Hôm nay là sinh nhật của {name} — tròn {age} tuổi. Chúc mừng sinh nhật!"
             elif days == 1:
                 time_str  = "Ngày mai"
                 severity  = "info"
                 title     = f"🎁 Sinh nhật ngày mai: {name}"
-                desc      = f"{name} sẽ tròn {age + 1} tuổi vào ngày mai. Đừng quên gửi lời chúc!"
+                desc      = f"{name} sẽ tròn {age + 1} tuổi vào ngày mai ({dob.strftime('%d/%m')}). Đừng quên gửi lời chúc!"
             else:
                 time_str  = f"Còn {days} ngày"
                 severity  = "info"

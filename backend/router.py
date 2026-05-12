@@ -38,7 +38,7 @@ def get_departments_stats():
                      THEN e.FullName END)                AS Manager
         FROM Departments d
         LEFT JOIN Employees e ON d.DepartmentID = e.DepartmentID
-            AND e.Status != 'Inactive'
+            AND e.Status NOT IN ('Inactive', N'Đã nghỉ việc', N'Đã nghỉ')
         GROUP BY d.DepartmentID, d.DepartmentName
         ORDER BY TotalEmployees DESC
     """)
@@ -93,7 +93,7 @@ def get_department_employees(dept_id):
         FROM Employees e
         LEFT JOIN Positions p ON e.PositionID = p.PositionID
         WHERE e.DepartmentID = ?
-          AND e.Status != 'Inactive'
+          AND e.Status NOT IN ('Inactive', N'Đã nghỉ việc', N'Đã nghỉ')
         ORDER BY p.PositionID, e.FullName
     """, dept_id)
 
@@ -193,7 +193,7 @@ def get_positions_stats():
             COUNT(e.EmployeeID) AS TotalEmployees
         FROM Positions p
         LEFT JOIN Employees e ON p.PositionID = e.PositionID
-            AND e.Status != 'Inactive'
+            AND e.Status NOT IN ('Inactive', N'Đã nghỉ việc', N'Đã nghỉ')
         GROUP BY p.PositionID, p.PositionName
         ORDER BY p.PositionID
     """)
@@ -1061,7 +1061,7 @@ def get_dashboard():
     cur = sql.cursor()
 
     # Tổng nhân viên
-    cur.execute("SELECT COUNT(*) FROM Employees WHERE Status != 'Inactive'")
+    cur.execute("SELECT COUNT(*) FROM Employees WHERE Status NOT IN ('Inactive', N'Đã nghỉ việc', N'Đã nghỉ')")
     total_employees = cur.fetchone()[0]
 
     # Nhân viên theo phòng ban
@@ -1069,7 +1069,7 @@ def get_dashboard():
         SELECT d.DepartmentName, COUNT(e.EmployeeID) AS Total
         FROM Departments d
         LEFT JOIN Employees e ON d.DepartmentID = e.DepartmentID
-            AND e.Status != 'Inactive'
+            AND e.Status NOT IN ('Inactive', N'Đã nghỉ việc', N'Đã nghỉ')
         GROUP BY d.DepartmentID, d.DepartmentName
         ORDER BY Total DESC
     """)

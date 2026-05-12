@@ -383,7 +383,7 @@ export default function Attendance() {
 
   /* ── Summary att ── */
   const attSummary = {
-    totalEmp:   attRows.length,
+    totalEmp:   employees.filter(e => e.Status !== "Inactive").length,
     totalWork:  attRows.reduce((s, r) => s + (r.WorkDays || 0), 0),
     totalOT:    attRows.reduce((s, r) => s + (r.OvertimeHours || 0), 0),
     totalAbsent:attRows.reduce((s, r) => s + (r.AbsentDays || 0), 0),

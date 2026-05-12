@@ -415,70 +415,77 @@ export default function Profile() {
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <Toast show={toast.show} msg={toast.msg} type={toast.type} />
 
-      {/* ══ COVER BANNER ══ */}
-      <div style={{
-        background: roleCfg.banner, borderRadius: "16px 16px 0 0",
-        height: 140, position: "relative", overflow: "hidden",
-      }}>
-        {/* Decorative circles */}
-        <div style={{ position: "absolute", top: -30, right: -30, width: 160, height: 160,
-          borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
-        <div style={{ position: "absolute", bottom: -20, left: 120, width: 100, height: 100,
-          borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+      {/* ══ BANNER + HERO gộp ══ */}
+      <div style={{ borderRadius: "16px 16px 0 0", overflow: "visible", position: "relative" }}>
 
-        {/* Edit button */}
-        {!editMode && (
-          <button onClick={() => { setActiveTab("info"); setEditMode(true); }}
-            style={{ position: "absolute", top: 16, right: 16,
-              background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
-              borderRadius: 8, color: "#fff", fontWeight: 600, fontSize: 12,
-              padding: "6px 14px", cursor: "pointer", backdropFilter: "blur(4px)" }}>
-            ✏ Chỉnh sửa
-          </button>
-        )}
-      </div>
+        {/* Banner xanh */}
+        <div style={{
+          background: roleCfg.banner,
+          borderRadius: "16px 16px 0 0",
+          height: 120, position: "relative", overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", top: -30, right: -30, width: 160, height: 160,
+            borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+          <div style={{ position: "absolute", bottom: -20, left: 160, width: 100, height: 100,
+            borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+          {!editMode && (
+            <button onClick={() => { setActiveTab("info"); setEditMode(true); }}
+              style={{ position: "absolute", top: 14, right: 16,
+                background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: 8, color: "#fff", fontWeight: 600, fontSize: 12,
+                padding: "6px 14px", cursor: "pointer" }}>
+              ✏ Chỉnh sửa
+            </button>
+          )}
+        </div>
 
-      {/* ══ HERO SECTION ══ */}
-      <div style={{ background: "#fff", borderRadius: "0 0 0 0", padding: "0 28px 20px",
-        borderLeft: "1px solid #e8ecf0", borderRight: "1px solid #e8ecf0" }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 20, marginTop: -40 }}>
-          {/* Avatar */}
-          <div style={{
-            width: 80, height: 80, borderRadius: "50%", flexShrink: 0,
-            background: roleCfg.banner,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#fff", fontSize: 26, fontWeight: 800,
-            border: "4px solid #fff",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-          }}>
-            {loading ? "?" : initials(profile?.fullName || user?.fullName)}
-          </div>
-
-          {/* Name + info */}
-          <div style={{ flex: 1, paddingBottom: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <h4 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e2a3a" }}>
-                {loading ? "—" : (profile?.fullName || user?.fullName || "—")}
-              </h4>
-              <span style={{ background: statusCfg.bg, color: statusCfg.color,
-                fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>
-                ● {statusCfg.label}
-              </span>
+        {/* Hero row — đè lên ranh giới xanh/trắng */}
+        <div style={{
+          background: "#fff",
+          borderLeft: "1px solid #e8ecf0", borderRight: "1px solid #e8ecf0",
+          padding: "0 28px 20px",
+        }}>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 18, marginTop: -44 }}>
+            {/* Avatar nổi lên */}
+            <div style={{
+              width: 88, height: 88, borderRadius: "50%", flexShrink: 0,
+              background: roleCfg.banner,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff", fontSize: 28, fontWeight: 800,
+              border: "4px solid #fff",
+              boxShadow: "0 6px 24px rgba(0,0,0,0.18)",
+              zIndex: 1, position: "relative",
+            }}>
+              {loading ? "?" : initials(profile?.fullName || user?.fullName)}
             </div>
-            <div style={{ fontSize: 13, color: "#5a6478", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <Briefcase size={12} /> {profile?.positionName || roleCfg.label}
-              </span>
-              {profile?.departmentName && (
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Building2 size={12} /> {profile.departmentName}
+
+            {/* Tên + info — nằm trên nền trắng */}
+            <div style={{ flex: 1, paddingBottom: 6, paddingTop: 48 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                <h4 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#1e2a3a" }}>
+                  {loading ? "—" : (profile?.fullName || user?.fullName || "—")}
+                </h4>
+                <span style={{ background: statusCfg.bg, color: statusCfg.color,
+                  fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20 }}>
+                  ● {statusCfg.label}
                 </span>
-              )}
-              {profile?.hireDate && (
+              </div>
+              <div style={{ fontSize: 13, color: "#5a6478", marginTop: 4,
+                display: "flex", gap: 14, flexWrap: "wrap" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <Calendar size={12} /> Vào làm {new Date(profile.hireDate).toLocaleDateString("vi-VN")}
+                  <Briefcase size={12} /> {profile?.positionName || roleCfg.label}
                 </span>
-              )}
+                {profile?.departmentName && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Building2 size={12} /> {profile.departmentName}
+                  </span>
+                )}
+                {profile?.hireDate && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <Calendar size={12} /> Vào làm {new Date(profile.hireDate).toLocaleDateString("vi-VN")}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
